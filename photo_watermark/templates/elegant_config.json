@@ -1,0 +1,15 @@
+{
+  "font_size": 32,
+  "font_color": "white",
+  "font_alpha": 0.7,
+  "font_path": null,
+  "position": "bottom-right",
+  "margin": 30,
+  "custom_position": null,
+  "date_format": "DD MMM YYYY",
+  "output_format": "JPEG",
+  "output_quality": 98,
+  "recursive": true,
+  "preview_mode": false,
+  "verbose": true
+}

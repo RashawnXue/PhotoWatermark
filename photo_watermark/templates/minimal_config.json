@@ -1,0 +1,15 @@
+{
+  "font_size": 16,
+  "font_color": "gray",
+  "font_alpha": 0.6,
+  "font_path": null,
+  "position": "bottom-left",
+  "margin": 10,
+  "custom_position": null,
+  "date_format": "YYYY/MM/DD",
+  "output_format": "PNG",
+  "output_quality": 95,
+  "recursive": false,
+  "preview_mode": false,
+  "verbose": false
+}
