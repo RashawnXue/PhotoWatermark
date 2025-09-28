@@ -22,7 +22,7 @@ class ProgressDialog:
         # 创建对话框窗口
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
-        self.dialog.geometry("400x150")
+        self.dialog.geometry("400x200")  # 增加高度，确保按钮完全显示
         self.dialog.resizable(False, False)
         
         # 设置为模态对话框
@@ -61,15 +61,16 @@ class ProgressDialog:
         """创建界面组件"""
         # 主框架
         main_frame = ttk.Frame(self.dialog)
-        main_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        main_frame.pack(fill='both', expand=True, padx=20, pady=(20, 10))
         
         # 状态标签
         self.status_label = ttk.Label(
             main_frame,
             text="准备开始处理...",
-            font=('Arial', 10)
+            font=('Arial', 10),
+            wraplength=350  # 添加文本自动换行
         )
-        self.status_label.pack(pady=(0, 10))
+        self.status_label.pack(pady=(0, 15))
         
         # 进度条
         self.progress_var = tk.DoubleVar()
@@ -91,7 +92,7 @@ class ProgressDialog:
         
         # 按钮框架
         button_frame = ttk.Frame(main_frame)
-        button_frame.pack()
+        button_frame.pack(pady=(10, 0))  # 增加顶部间距
         
         # 取消按钮
         self.cancel_button = ttk.Button(

@@ -39,17 +39,46 @@ class WatermarkProcessor:
             return (255, 255, 255)
     
     def _get_text_size(self, text: str, font: ImageFont.ImageFont) -> Tuple[int, int]:
-        """获取文本尺寸"""
+        """获取文本尺寸（支持多行文本）"""
         # 创建临时图像来测量文本大小
         temp_img = Image.new('RGB', (1, 1))
         draw = ImageDraw.Draw(temp_img)
         
-        # 使用textbbox获取文本边界框
-        bbox = draw.textbbox((0, 0), text, font=font)
-        width = bbox[2] - bbox[0]
-        height = bbox[3] - bbox[1]
+        # 处理多行文本
+        lines = text.split('\n')
+        max_width = 0
+        total_height = 0
         
-        return width, height
+        for i, line in enumerate(lines):
+            # 获取每行的尺寸
+            bbox = draw.textbbox((0, 0), line, font=font)
+            line_width = bbox[2] - bbox[0]
+            line_height = bbox[3] - bbox[1]
+            
+            max_width = max(max_width, line_width)
+            total_height += line_height
+            
+            # 添加行间距（除了最后一行）
+            if i < len(lines) - 1:
+                total_height += int(line_height * 0.2)  # 20%的行间距
+        
+        return max_width, total_height
+    
+    def _draw_multiline_text(self, draw: ImageDraw.ImageDraw, position: Tuple[int, int], 
+                            text: str, font: ImageFont.ImageFont, fill: Tuple[int, int, int, int]):
+        """绘制多行文本"""
+        x, y = position
+        lines = text.split('\n')
+        
+        for i, line in enumerate(lines):
+            if line.strip():  # 跳过空行
+                draw.text((x, y), line, font=font, fill=fill)
+            
+            # 计算下一行的Y位置
+            if i < len(lines) - 1:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                line_height = bbox[3] - bbox[1]
+                y += line_height + int(line_height * 0.2)  # 添加20%行间距
     
     def _scale_watermark_image(self, watermark_img: Image.Image, target_size: Tuple[int, int], 
                               img_config: ImageWatermarkConfig) -> Image.Image:
@@ -204,12 +233,12 @@ class WatermarkProcessor:
                 # 创建模糊阴影
                 shadow_overlay = Image.new('RGBA', watermarked_image.size, (0, 0, 0, 0))
                 shadow_draw = ImageDraw.Draw(shadow_overlay)
-                shadow_draw.text((shadow_x, shadow_y), text_config.text, font=font, fill=shadow_color)
+                self._draw_multiline_text(shadow_draw, (shadow_x, shadow_y), text_config.text, font, shadow_color)
                 shadow_overlay = shadow_overlay.filter(ImageFilter.GaussianBlur(text_config.shadow_blur))
                 overlay = Image.alpha_composite(overlay, shadow_overlay)
             else:
                 # 绘制普通阴影
-                draw.text((shadow_x, shadow_y), text_config.text, font=font, fill=shadow_color)
+                self._draw_multiline_text(draw, (shadow_x, shadow_y), text_config.text, font, shadow_color)
         
         # 绘制描边效果
         if text_config.stroke_enabled:
@@ -220,10 +249,10 @@ class WatermarkProcessor:
             for dx in range(-text_config.stroke_width, text_config.stroke_width + 1):
                 for dy in range(-text_config.stroke_width, text_config.stroke_width + 1):
                     if dx != 0 or dy != 0:
-                        draw.text((x + dx, y + dy), text_config.text, font=font, fill=stroke_color)
+                        self._draw_multiline_text(draw, (x + dx, y + dy), text_config.text, font, stroke_color)
         
         # 绘制主文本
-        draw.text((x, y), text_config.text, font=font, fill=text_color)
+        self._draw_multiline_text(draw, (x, y), text_config.text, font, text_color)
         
         # 合并透明层到原图
         if watermarked_image.mode != 'RGBA':
@@ -322,8 +351,8 @@ class WatermarkProcessor:
             alpha = int(self.config.config.font_alpha * 255)
             color_with_alpha = (*color, alpha)
             
-            # 在透明层上绘制文本
-            draw.text((x, y), text, font=font, fill=color_with_alpha)
+            # 在透明层上绘制文本（支持多行）
+            self._draw_multiline_text(draw, (x, y), text, font, color_with_alpha)
             
             # 将透明层合并到原图
             if watermarked_image.mode != 'RGBA':
@@ -338,9 +367,9 @@ class WatermarkProcessor:
                 background.paste(watermarked_image, mask=watermarked_image.split()[-1])
                 watermarked_image = background
         else:
-            # 直接绘制不透明文本
+            # 直接绘制不透明文本（支持多行）
             draw = ImageDraw.Draw(watermarked_image)
-            draw.text((x, y), text, font=font, fill=color)
+            self._draw_multiline_text(draw, (x, y), text, font, color)
         
         return watermarked_image
     

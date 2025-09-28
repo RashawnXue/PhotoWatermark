@@ -502,7 +502,7 @@ class MainWindow:
         
         # 如果没有找到任何有效文件，显示提示
         if not valid_files and file_paths:
-            messagebox.showinfo("提示", "没有找到支持的图片文件\\n支持的格式: JPEG, PNG, BMP, TIFF")
+            messagebox.showinfo("提示", "没有找到支持的图片文件\n支持的格式: JPEG, PNG, BMP, TIFF")
             
     def _on_files_dropped(self, file_paths: List[str]):
         """文件拖拽事件处理"""
@@ -824,9 +824,9 @@ class MainWindow:
         success_count = len(success_files)
         
         if failed_files:
-            message = f"导出完成！\\n成功: {success_count}/{total}\\n失败: {len(failed_files)} 张"
+            message = f"导出完成！\n成功: {success_count}/{total}\n失败: {len(failed_files)} 张"
         else:
-            message = f"导出完成！\\n成功处理 {success_count} 张图片"
+            message = f"导出完成！\n成功处理 {success_count} 张图片"
             
         progress_dialog.complete(message)
         
@@ -835,13 +835,13 @@ class MainWindow:
         
         # 如果有失败的文件，显示详细信息
         if failed_files:
-            failed_list = "\\n".join([os.path.basename(f) for f in failed_files[:10]])
+            failed_list = "\n".join([os.path.basename(f) for f in failed_files[:10]])
             if len(failed_files) > 10:
-                failed_list += f"\\n... 还有 {len(failed_files) - 10} 个文件"
+                failed_list += f"\n... 还有 {len(failed_files) - 10} 个文件"
                 
             messagebox.showwarning(
                 "部分文件处理失败", 
-                f"以下文件处理失败:\\n{failed_list}"
+                f"以下文件处理失败:\n{failed_list}"
             )
             
     def _create_watermark_settings(self, parent):
@@ -905,7 +905,10 @@ class MainWindow:
         
         # 绑定文本变化事件
         def on_text_change():
-            content = text_entry.get("1.0", tk.END).strip()
+            content = text_entry.get("1.0", tk.END)
+            # 只移除末尾的一个换行符（tk.Text.get()会自动添加）
+            if content.endswith('\n'):
+                content = content[:-1]
             self.text_content_var.set(content)
         
         text_entry.bind('<KeyRelease>', lambda e: on_text_change())

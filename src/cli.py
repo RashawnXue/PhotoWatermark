@@ -58,10 +58,10 @@ def validate_color(ctx, param, value):
     if parsed_color is None:
         available_colors = list(get_available_colors().keys())
         raise click.BadParameter(
-            f"无效的颜色格式: {value}\\n"
-            f"支持的格式:\\n"
-            f"  - 颜色名称: {', '.join(available_colors[:10])}...\\n"
-            f"  - 十六进制: #FF0000, ff0000\\n"
+            f"无效的颜色格式: {value}\n"
+            f"支持的格式:\n"
+            f"  - 颜色名称: {', '.join(available_colors[:10])}...\n"
+            f"  - 十六进制: #FF0000, ff0000\n"
             f"  - RGB: rgb(255,0,0) 或 255,0,0"
         )
     
@@ -78,7 +78,7 @@ def validate_position(ctx, param, value):
     except ValueError:
         valid_positions = [pos.value for pos in Position]
         raise click.BadParameter(
-            f"无效的位置: {value}\\n"
+            f"无效的位置: {value}\n"
             f"支持的位置: {', '.join(valid_positions)}"
         )
 
@@ -93,7 +93,7 @@ def validate_date_format(ctx, param, value):
     except ValueError:
         valid_formats = [fmt.value for fmt in DateFormat]
         raise click.BadParameter(
-            f"无效的日期格式: {value}\\n"
+            f"无效的日期格式: {value}\n"
             f"支持的格式: {', '.join(valid_formats)}"
         )
 
@@ -244,7 +244,7 @@ def main(input_path: str, output_dir: Optional[str], font_size: Optional[int],
         print_success("处理完成!")
         
     except KeyboardInterrupt:
-        print_warning("\\n用户中断操作")
+        print_warning("\n用户中断操作")
         sys.exit(1)
     except Exception as e:
         print_error(f"程序运行出错: {e}")
