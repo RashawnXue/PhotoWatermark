@@ -13,7 +13,12 @@
   - 状态: ✅ 已实现
 
 ### 功能扩展 PRD
-*待添加新功能需求时，会在此处列出*
+- **[v2.0-gui-file-processing.md](./v2.0-gui-file-processing.md)** - PhotoWatermark v2.0 GUI文件处理功能需求文档
+  - 图形用户界面
+  - 文件拖拽导入
+  - 批量处理界面
+  - 导出设置对话框
+  - 状态: 📋 待开发
 
 ## 📋 PRD 编写规范
 
