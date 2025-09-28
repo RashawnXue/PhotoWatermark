@@ -155,15 +155,30 @@ class WatermarkProcessor:
             # 时间水印（原有功能）
             if text is None:
                 raise ValueError("时间水印需要提供文本内容")
-            return self.add_watermark(image, text)
+            result = self.add_watermark(image, text)
         elif watermark_type == WatermarkType.TEXT:
             # 文本水印
-            return self.add_text_watermark(image)
+            result = self.add_text_watermark(image)
         elif watermark_type == WatermarkType.IMAGE:
             # 图片水印
-            return self.add_image_watermark(image)
+            result = self.add_image_watermark(image)
         else:
             raise ValueError(f"不支持的水印类型: {watermark_type}")
+        
+        # 确保返回的图片格式与输出格式兼容
+        if hasattr(self.config.config, 'output_format') and self.config.config.output_format.upper() == 'JPEG':
+            if result.mode in ('RGBA', 'LA'):
+                # 创建白色背景
+                background = Image.new('RGB', result.size, (255, 255, 255))
+                if result.mode == 'RGBA':
+                    background.paste(result, mask=result.split()[-1])
+                else:
+                    background.paste(result)
+                result = background
+            elif result.mode != 'RGB':
+                result = result.convert('RGB')
+        
+        return result
     
     def add_text_watermark(self, image: Image.Image) -> Image.Image:
         """添加自定义文本水印"""
