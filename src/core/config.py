@@ -34,22 +34,82 @@ class DateFormat(Enum):
     DD_MMM_YYYY = "DD MMM YYYY"
 
 
+class WatermarkType(Enum):
+    """水印类型枚举"""
+    TIMESTAMP = "timestamp"  # 时间水印（原有功能）
+    TEXT = "text"           # 文本水印
+    IMAGE = "image"         # 图片水印
+
+
+class ScaleMode(Enum):
+    """图片水印缩放模式"""
+    PERCENTAGE = "percentage"  # 按百分比
+    PIXEL = "pixel"           # 按像素
+    ADAPTIVE = "adaptive"     # 自适应
+
+
 @dataclass
-class WatermarkConfig:
-    """水印配置类"""
-    # 字体设置
+class TextWatermarkConfig:
+    """文本水印配置"""
+    text: str = ""  # 自定义文本内容
     font_size: Optional[int] = None  # None表示自适应
     font_color: str = "white"
     font_alpha: float = 0.8  # 透明度 0-1
     font_path: Optional[str] = None  # 自定义字体路径
+    font_bold: bool = False  # 粗体
+    font_italic: bool = False  # 斜体
     
-    # 位置设置
+    # 视觉增强效果
+    shadow_enabled: bool = False
+    shadow_color: str = "black"
+    shadow_offset_x: int = 2
+    shadow_offset_y: int = 2
+    shadow_blur: int = 2
+    shadow_alpha: float = 0.5
+    
+    stroke_enabled: bool = False
+    stroke_color: str = "black"
+    stroke_width: int = 1
+
+
+@dataclass
+class ImageWatermarkConfig:
+    """图片水印配置"""
+    image_path: str = ""  # 水印图片路径
+    scale_mode: ScaleMode = ScaleMode.PERCENTAGE
+    scale_percentage: float = 20.0  # 百分比缩放 5-50%
+    scale_width: int = 100  # 像素宽度
+    scale_height: int = 100  # 像素高度
+    keep_aspect_ratio: bool = True  # 保持宽高比
+    alpha: float = 0.8  # 整体透明度 0-1
+    rotation: float = 0.0  # 旋转角度 0-360
+    flip_horizontal: bool = False  # 水平翻转
+    flip_vertical: bool = False  # 垂直翻转
+
+
+@dataclass
+class WatermarkConfig:
+    """水印配置类"""
+    # 水印类型
+    watermark_type: WatermarkType = WatermarkType.TIMESTAMP
+    
+    # 通用设置
     position: Position = Position.BOTTOM_RIGHT
     margin: int = 20  # 边距像素
     custom_position: Optional[Tuple[int, int]] = None  # 自定义坐标
     
-    # 日期格式
+    # 时间水印设置（保持向后兼容）
+    font_size: Optional[int] = None  # None表示自适应
+    font_color: str = "white"
+    font_alpha: float = 0.8  # 透明度 0-1
+    font_path: Optional[str] = None  # 自定义字体路径
     date_format: DateFormat = DateFormat.YYYY_MM_DD
+    
+    # 文本水印配置
+    text_watermark: TextWatermarkConfig = None
+    
+    # 图片水印配置
+    image_watermark: ImageWatermarkConfig = None
     
     # 输出设置
     output_format: str = "JPEG"  # JPEG, PNG
@@ -59,23 +119,53 @@ class WatermarkConfig:
     recursive: bool = False
     preview_mode: bool = False
     verbose: bool = False
+    
+    def __post_init__(self):
+        """初始化后处理"""
+        if self.text_watermark is None:
+            self.text_watermark = TextWatermarkConfig()
+        if self.image_watermark is None:
+            self.image_watermark = ImageWatermarkConfig()
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典格式"""
         data = asdict(self)
         # 转换枚举值
+        data['watermark_type'] = self.watermark_type.value
         data['position'] = self.position.value
         data['date_format'] = self.date_format.value
+        
+        # 处理嵌套配置
+        if 'text_watermark' in data and data['text_watermark']:
+            data['text_watermark'] = asdict(self.text_watermark)
+        if 'image_watermark' in data and data['image_watermark']:
+            data['image_watermark'] = asdict(self.image_watermark)
+            # 转换图片水印的枚举值
+            if 'scale_mode' in data['image_watermark']:
+                data['image_watermark']['scale_mode'] = self.image_watermark.scale_mode.value
+        
         return data
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'WatermarkConfig':
         """从字典创建配置对象"""
         # 处理枚举值
+        if 'watermark_type' in data:
+            data['watermark_type'] = WatermarkType(data['watermark_type'])
         if 'position' in data:
             data['position'] = Position(data['position'])
         if 'date_format' in data:
             data['date_format'] = DateFormat(data['date_format'])
+        
+        # 处理嵌套配置
+        if 'text_watermark' in data and data['text_watermark']:
+            data['text_watermark'] = TextWatermarkConfig(**data['text_watermark'])
+        
+        if 'image_watermark' in data and data['image_watermark']:
+            img_data = data['image_watermark']
+            if 'scale_mode' in img_data:
+                img_data['scale_mode'] = ScaleMode(img_data['scale_mode'])
+            data['image_watermark'] = ImageWatermarkConfig(**img_data)
         
         return cls(**data)
 
