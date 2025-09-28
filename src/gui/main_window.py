@@ -265,24 +265,25 @@ class MainWindow:
         self.quality_frame = ttk.Frame(export_frame)
         self.quality_frame.pack(fill='x', padx=10, pady=(0, 5))
         
-        ttk.Label(self.quality_frame, text="JPEG质量:").pack(anchor='w')
+        self.quality_label_title = ttk.Label(self.quality_frame, text="JPEG质量:")
+        self.quality_label_title.pack(anchor='w')
         quality_scale_frame = ttk.Frame(self.quality_frame)
         quality_scale_frame.pack(fill='x', pady=(0, 5))
         
         self.quality_var = tk.IntVar(value=95)
-        quality_scale = ttk.Scale(
+        self.quality_scale = ttk.Scale(
             quality_scale_frame,
             from_=1, to=100,
             variable=self.quality_var,
             orient='horizontal'
         )
-        quality_scale.pack(side='left', fill='x', expand=True)
+        self.quality_scale.pack(side='left', fill='x', expand=True)
         
         self.quality_label = ttk.Label(quality_scale_frame, text="95%")
         self.quality_label.pack(side='right', padx=(5, 0))
         
         # 绑定质量滑块变化事件
-        quality_scale.configure(command=self._on_quality_change)
+        self.quality_scale.configure(command=self._on_quality_change)
         
         # 文件命名
         ttk.Label(export_frame, text="文件命名:").pack(anchor='w', padx=10, pady=(5, 0))
@@ -487,9 +488,15 @@ class MainWindow:
         """格式改变事件"""
         if hasattr(self, 'quality_frame'):
             if self.format_var.get() == "JPEG":
-                self.quality_frame.pack(fill='x', padx=10, pady=(0, 5))
+                # 启用JPEG质量控件
+                self.quality_label_title.config(state='normal', foreground='black')
+                self.quality_scale.config(state='normal')
+                self.quality_label.config(state='normal', foreground='black')
             else:
-                self.quality_frame.pack_forget()
+                # 禁用JPEG质量控件（PNG格式）
+                self.quality_label_title.config(state='disabled', foreground='gray')
+                self.quality_scale.config(state='disabled')
+                self.quality_label.config(state='disabled', foreground='gray')
                 
     def _on_quality_change(self, value):
         """质量滑块改变事件"""
