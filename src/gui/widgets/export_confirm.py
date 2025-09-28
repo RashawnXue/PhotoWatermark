@@ -45,9 +45,30 @@ class ExportConfirmDialog:
         except:
             pass
             
-        # 创建主框架
-        main_frame = ttk.Frame(self.dialog, padding="10")
-        main_frame.pack(fill='both', expand=True)
+        # 创建滚动框架
+        canvas = tk.Canvas(self.dialog, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.dialog, orient="vertical", command=canvas.yview)
+        main_frame = ttk.Frame(canvas, padding="10")
+        
+        main_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 布局滚动组件
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # 绑定鼠标滚轮事件
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind("<MouseWheel>", _on_mousewheel)  # Windows
+        canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # Linux
+        canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))   # Linux
         
         # 创建内容
         self._create_header(main_frame)

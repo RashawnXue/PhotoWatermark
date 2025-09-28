@@ -168,15 +168,40 @@ class MainWindow:
         settings_frame.pack_propagate(False)
         parent.add(settings_frame, weight=0)
         
+        # 创建滚动框架
+        canvas = tk.Canvas(settings_frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(settings_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 布局滚动组件
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # 绑定鼠标滚轮事件
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind("<MouseWheel>", _on_mousewheel)  # Windows
+        canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # Linux
+        canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))   # Linux
+        
         # 设置面板标题
         ttk.Label(
-            settings_frame, 
+            scrollable_frame, 
             text="设置面板", 
             font=('Arial', 12, 'bold')
         ).pack(pady=(10, 20))
         
         # 导入设置
-        import_frame = ttk.LabelFrame(settings_frame, text="导入设置")
+        import_frame = ttk.LabelFrame(scrollable_frame, text="导入设置")
         import_frame.pack(fill='x', padx=10, pady=(0, 10))
         
         self.recursive_var = tk.BooleanVar()
@@ -187,7 +212,7 @@ class MainWindow:
         ).pack(anchor='w', padx=10, pady=5)
         
         # 水印设置（简化版）
-        watermark_frame = ttk.LabelFrame(settings_frame, text="水印设置")
+        watermark_frame = ttk.LabelFrame(scrollable_frame, text="水印设置")
         watermark_frame.pack(fill='x', padx=10, pady=(0, 10))
         
         # 字体颜色
@@ -233,7 +258,7 @@ class MainWindow:
         ).pack(pady=10)
         
         # 导出设置
-        export_frame = ttk.LabelFrame(settings_frame, text="导出设置")
+        export_frame = ttk.LabelFrame(scrollable_frame, text="导出设置")
         export_frame.pack(fill='x', padx=10, pady=(0, 10))
         
         # 输出目录
