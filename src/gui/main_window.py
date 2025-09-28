@@ -187,42 +187,33 @@ class MainWindow:
         
         # 绑定鼠标滚轮事件
         def _on_mousewheel(event):
-            """处理鼠标滚轮事件"""
+            """处理鼠标滚轮事件 - 使用较小的滚动步长"""
             try:
-                # macOS和Windows - 修复delta计算
+                # 简化逻辑，统一使用较小的滚动步长
                 if hasattr(event, 'delta') and event.delta != 0:
-                    # macOS上delta通常是较小的值，不需要除以120
-                    if abs(event.delta) < 5:
-                        delta = -1 if event.delta < 0 else 1
-                    else:
-                        # Windows上的大delta值
-                        delta = -1 * int(event.delta / 120)
-                        if delta == 0:  # 确保不为0
-                            delta = -1 if event.delta < 0 else 1
-                # Linux
+                    # 根据delta方向确定滚动方向，但使用固定的小步长
+                    direction = -1 if event.delta < 0 else 1
                 elif hasattr(event, 'num'):
-                    if event.num == 4:
-                        delta = -1
-                    elif event.num == 5:
-                        delta = 1
-                    else:
-                        return
+                    # Linux鼠标滚轮
+                    direction = -1 if event.num == 4 else 1 if event.num == 5 else 0
                 else:
                     return
-                    
-                canvas.yview_scroll(delta, "units")
+                
+                if direction != 0:
+                    # 使用较小的滚动步长，每次只滚动1个单位
+                    canvas.yview_scroll(direction, "units")
             except Exception as e:
                 print(f"鼠标滚轮事件处理错误: {e}")
             return "break"
         
         def _on_mousewheel_up(event):
-            """向上滚动"""
-            canvas.yview_scroll(-1, "units")
+            """向上滚动 - 减小步长"""
+            canvas.yview_scroll(-1, "units")  # 保持1个单位
             return "break"
             
         def _on_mousewheel_down(event):
-            """向下滚动"""
-            canvas.yview_scroll(1, "units")
+            """向下滚动 - 减小步长"""
+            canvas.yview_scroll(1, "units")   # 保持1个单位
             return "break"
         
         def _bind_mousewheel_to_widget(widget):
