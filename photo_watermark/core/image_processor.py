@@ -105,8 +105,17 @@ class ImageProcessor:
         
         return output_dir
     
-    def process_single_image(self, input_path: str, output_path: str) -> Tuple[bool, str]:
+    def process_single_image(self, input_path: str, output_path: str, 
+                           output_format: str = None, quality: int = 95, 
+                           resize_config: dict = None) -> Tuple[bool, str]:
         """处理单张图片
+        
+        Args:
+            input_path: 输入图片路径
+            output_path: 输出图片路径
+            output_format: 输出格式 ('JPEG' 或 'PNG')
+            quality: JPEG质量 (1-100)
+            resize_config: 尺寸调整配置
         
         Returns:
             Tuple[bool, str]: (是否成功, 错误信息或成功信息)
@@ -132,8 +141,9 @@ class ImageProcessor:
                     return False, f"预览失败: {e}"
             
             # 实际处理
-            success = self.watermark_processor.process_image(
-                input_path, output_path, watermark_text
+            success = self.watermark_processor.process_image_with_options(
+                input_path, output_path, watermark_text, 
+                output_format, quality, resize_config
             )
             
             if success:

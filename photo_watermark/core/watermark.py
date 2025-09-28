@@ -159,6 +159,94 @@ class WatermarkProcessor:
                 print(f"处理图片 {input_path} 时出错: {e}")
             return False
     
+    def process_image_with_options(self, input_path: str, output_path: str, 
+                                 watermark_text: str, output_format: str = None, 
+                                 quality: int = 95, resize_config: dict = None) -> bool:
+        """处理单张图片（带完整选项）"""
+        try:
+            # 打开图片
+            with Image.open(input_path) as img:
+                # 调整图片尺寸
+                if resize_config and resize_config.get('enabled', False):
+                    img = self._resize_image(img, resize_config)
+                
+                # 添加水印
+                watermarked_img = self.add_watermark(img, watermark_text)
+                
+                # 确保输出目录存在
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                
+                # 确定输出格式
+                if output_format is None:
+                    output_format = self.config.config.output_format
+                
+                # 处理格式转换
+                if output_format.upper() == 'JPEG':
+                    # JPEG不支持透明通道，需要转换
+                    if watermarked_img.mode in ('RGBA', 'LA'):
+                        # 创建白色背景
+                        background = Image.new('RGB', watermarked_img.size, (255, 255, 255))
+                        if watermarked_img.mode == 'RGBA':
+                            background.paste(watermarked_img, mask=watermarked_img.split()[-1])
+                        else:
+                            background.paste(watermarked_img)
+                        watermarked_img = background
+                    elif watermarked_img.mode != 'RGB':
+                        watermarked_img = watermarked_img.convert('RGB')
+                
+                # 保存图片
+                save_kwargs = {}
+                if output_format.upper() == 'JPEG':
+                    save_kwargs['quality'] = quality
+                    save_kwargs['optimize'] = True
+                elif output_format.upper() == 'PNG':
+                    save_kwargs['optimize'] = True
+                
+                watermarked_img.save(output_path, format=output_format.upper(), **save_kwargs)
+                return True
+                
+        except Exception as e:
+            if self.config.config.verbose:
+                print(f"处理图片 {input_path} 时出错: {e}")
+            return False
+    
+    def _resize_image(self, img: Image.Image, resize_config: dict) -> Image.Image:
+        """调整图片尺寸"""
+        if not resize_config.get('enabled', False):
+            return img
+            
+        original_size = img.size
+        resize_type = resize_config.get('type', 'none')
+        
+        if resize_type == 'width':
+            new_width = resize_config.get('width', original_size[0])
+            ratio = new_width / original_size[0]
+            new_height = int(original_size[1] * ratio)
+            new_size = (new_width, new_height)
+        elif resize_type == 'height':
+            new_height = resize_config.get('height', original_size[1])
+            ratio = new_height / original_size[1]
+            new_width = int(original_size[0] * ratio)
+            new_size = (new_width, new_height)
+        elif resize_type == 'percentage':
+            percentage = resize_config.get('percentage', 100) / 100
+            new_width = int(original_size[0] * percentage)
+            new_height = int(original_size[1] * percentage)
+            new_size = (new_width, new_height)
+        elif resize_type == 'custom':
+            new_width = resize_config.get('width', original_size[0])
+            new_height = resize_config.get('height', original_size[1])
+            if resize_config.get('keep_ratio', True):
+                # 保持宽高比
+                ratio = min(new_width / original_size[0], new_height / original_size[1])
+                new_width = int(original_size[0] * ratio)
+                new_height = int(original_size[1] * ratio)
+            new_size = (new_width, new_height)
+        else:
+            return img
+            
+        return img.resize(new_size, Image.Resampling.LANCZOS)
+    
     def preview_watermark(self, image: Image.Image, text: str) -> Image.Image:
         """预览水印效果（不保存）"""
         return self.add_watermark(image, text)
