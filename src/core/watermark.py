@@ -383,7 +383,7 @@ class WatermarkProcessor:
             return False
     
     def process_image_with_options(self, input_path: str, output_path: str, 
-                                 watermark_text: str, output_format: str = None, 
+                                 watermark_text: str = None, output_format: str = None, 
                                  quality: int = 95, resize_config: dict = None) -> bool:
         """处理单张图片（带完整选项）"""
         try:
@@ -393,8 +393,8 @@ class WatermarkProcessor:
                 if resize_config and resize_config.get('enabled', False):
                     img = self._resize_image(img, resize_config)
                 
-                # 添加水印
-                watermarked_img = self.add_watermark(img, watermark_text)
+                # 根据水印类型添加水印
+                watermarked_img = self.process_watermark(img, watermark_text)
                 
                 # 确保输出目录存在
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)

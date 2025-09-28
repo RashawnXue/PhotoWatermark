@@ -612,6 +612,64 @@ class MainWindow:
         # 直接显示确认对话框
         self._show_export_confirmation(files_to_export, config)
         
+    def _get_watermark_config(self):
+        """从GUI获取水印配置"""
+        from ..core.config import WatermarkConfig, WatermarkType, TextWatermarkConfig, ImageWatermarkConfig, Position, DateFormat, ScaleMode
+        
+        # 确定当前选中的水印类型
+        current_tab = self.watermark_notebook.index(self.watermark_notebook.select())
+        if current_tab == 0:
+            watermark_type = WatermarkType.TIMESTAMP
+        elif current_tab == 1:
+            watermark_type = WatermarkType.TEXT
+        else:
+            watermark_type = WatermarkType.IMAGE
+        
+        # 创建文本水印配置
+        text_watermark = TextWatermarkConfig(
+            text=self.text_content_var.get() if hasattr(self, 'text_content_var') else "",
+            font_size=self.text_font_size_var.get() if hasattr(self, 'text_font_size_var') else 36,
+            font_color=self.text_color_var.get() if hasattr(self, 'text_color_var') else "white",
+            font_alpha=self.text_alpha_var.get() if hasattr(self, 'text_alpha_var') else 0.8,
+            font_bold=self.text_bold_var.get() if hasattr(self, 'text_bold_var') else False,
+            font_italic=self.text_italic_var.get() if hasattr(self, 'text_italic_var') else False,
+            shadow_enabled=self.shadow_enabled_var.get() if hasattr(self, 'shadow_enabled_var') else False,
+            shadow_offset_x=self.shadow_offset_x_var.get() if hasattr(self, 'shadow_offset_x_var') else 2,
+            shadow_offset_y=self.shadow_offset_y_var.get() if hasattr(self, 'shadow_offset_y_var') else 2,
+            stroke_enabled=self.stroke_enabled_var.get() if hasattr(self, 'stroke_enabled_var') else False,
+            stroke_width=self.stroke_width_var.get() if hasattr(self, 'stroke_width_var') else 1
+        )
+        
+        # 创建图片水印配置
+        scale_mode_str = self.scale_mode_var.get() if hasattr(self, 'scale_mode_var') else "percentage"
+        scale_mode = ScaleMode.PERCENTAGE if scale_mode_str == "percentage" else ScaleMode.PIXEL
+        
+        image_watermark = ImageWatermarkConfig(
+            image_path=self.image_path_var.get() if hasattr(self, 'image_path_var') else "",
+            scale_mode=scale_mode,
+            scale_percentage=self.scale_percentage_var.get() if hasattr(self, 'scale_percentage_var') else 20.0,
+            scale_width=self.scale_width_var.get() if hasattr(self, 'scale_width_var') else 100,
+            scale_height=self.scale_height_var.get() if hasattr(self, 'scale_height_var') else 100,
+            keep_aspect_ratio=self.keep_ratio_var.get() if hasattr(self, 'keep_ratio_var') else True,
+            alpha=self.image_alpha_var.get() if hasattr(self, 'image_alpha_var') else 0.8
+        )
+        
+        # 解析位置
+        position_str = self.position_var.get()
+        position = Position(position_str)
+        
+        # 创建主配置
+        watermark_config = WatermarkConfig(
+            watermark_type=watermark_type,
+            position=position,
+            font_color=self.color_var.get() if hasattr(self, 'color_var') else "white",
+            font_alpha=self.alpha_var.get() if hasattr(self, 'alpha_var') else 0.8,
+            text_watermark=text_watermark,
+            image_watermark=image_watermark
+        )
+        
+        return watermark_config
+
     def _get_export_config(self) -> dict:
         """从设置面板获取导出配置"""
         # 收集文件命名规则
@@ -713,10 +771,12 @@ class MainWindow:
         
     def _update_watermark_config(self):
         """更新水印配置"""
-        # 从界面获取设置并更新配置
-        self.config.config.font_color = self.color_var.get()
-        self.config.config.position = Position(self.position_var.get())
-        self.config.config.font_alpha = self.alpha_var.get()
+        # 获取新的水印配置
+        watermark_config = self._get_watermark_config()
+        
+        # 更新配置对象
+        from ..core.config import Config
+        self.config = Config(watermark_config)
         
     def _cancel_export(self):
         """取消导出"""
