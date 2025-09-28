@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from tkinterdnd2 import TkinterDnD
-    from photo_watermark.gui.widgets.drag_drop import DragDropFrame
+    from src.gui.widgets.drag_drop import DragDropFrame
     
     def on_files_dropped(files):
         print(f"✅ 拖拽成功！收到文件: {files}")

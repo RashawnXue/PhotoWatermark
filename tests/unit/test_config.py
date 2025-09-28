@@ -6,7 +6,7 @@ import unittest
 import json
 import tempfile
 import os
-from photo_watermark.core.config import Config, WatermarkConfig, Position, DateFormat
+from src.core.config import Config, WatermarkConfig, Position, DateFormat
 
 
 class TestConfig(unittest.TestCase):

@@ -193,11 +193,11 @@ $RECYCLE.BIN/
 # 测试图片和输出目录
 test_images/
 *_watermark/
-!photo_watermark/
+!src/
 
 # 用户配置文件
 *.json
-!photo_watermark/templates/*.json
+!src/templates/*.json
 
 # 测试脚本和临时图片生成器
 create_test_image.py
@@ -216,8 +216,8 @@ create_test_image.py
 *.tiff
 *.tif
 *.bmp
-!photo_watermark/templates/sample_*.jpg
-!photo_watermark/templates/sample_*.png
+!src/templates/sample_*.jpg
+!src/templates/sample_*.png
 
 # 备份文件
 *.bak

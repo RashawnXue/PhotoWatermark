@@ -11,7 +11,7 @@ import unittest
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from photo_watermark.gui.file_manager import FileManager
+from src.gui.file_manager import FileManager
 
 
 class TestFileProcessing(unittest.TestCase):

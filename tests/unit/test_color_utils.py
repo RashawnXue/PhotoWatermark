@@ -3,7 +3,7 @@
 """
 
 import unittest
-from photo_watermark.utils.color_utils import (
+from src.utils.color_utils import (
     parse_color, rgb_to_hex, get_contrast_color, 
     blend_colors, adjust_brightness, get_available_colors
 )

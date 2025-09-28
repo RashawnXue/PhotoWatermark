@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from tkinterdnd2 import TkinterDnD
-    from photo_watermark.gui.widgets.drag_drop import DragDropFrame
+    from src.gui.widgets.drag_drop import DragDropFrame
     import tkinter as tk
     from tkinter import ttk
     
