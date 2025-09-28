@@ -1,16 +1,21 @@
 # PhotoWatermark - 基于EXIF拍摄时间的图片水印工具
 
-一个强大的命令行工具，能够自动读取图片的EXIF信息中的拍摄时间，并将其作为水印添加到图片上。支持批量处理、多种样式配置和预览功能。
+一个强大的图片水印工具，能够自动读取图片的EXIF信息中的拍摄时间，并将其作为水印添加到图片上。提供命令行界面和图形用户界面两种使用方式，支持批量处理、多种样式配置和预览功能。
 
 ## ✨ 特性
 
+### 核心功能
 - 🕐 **自动提取拍摄时间**: 从图片EXIF信息中自动提取拍摄日期
 - 🎨 **丰富的样式选项**: 支持字体大小、颜色、透明度、位置等自定义设置
 - 📁 **批量处理**: 支持单张图片或整个目录的批量处理
 - 🔍 **预览功能**: 在实际处理前预览水印效果
 - ⚙️ **配置文件**: 支持保存和加载自定义配置
 - 📊 **进度显示**: 清晰的处理进度和统计信息
-- 🌈 **彩色输出**: 友好的彩色终端界面
+
+### 界面选择
+- 💻 **命令行界面**: 适合批量处理和自动化脚本
+- 🖥️ **图形用户界面**: 直观的拖拽操作和可视化设置
+- 🌈 **友好交互**: 彩色终端输出和现代化GUI设计
 
 ## 📦 安装
 
@@ -28,12 +33,30 @@ pip install -r requirements.txt
 ### 验证安装
 
 ```bash
+# 验证命令行版本
 python main.py --help
+
+# 验证GUI版本
+python gui_main.py
 ```
 
 ## 🚀 快速开始
 
-### 基本使用
+### 🖥️ 图形界面版本（推荐）
+
+```bash
+# 启动GUI应用
+python gui_main.py
+```
+
+**GUI功能特性：**
+- 📂 **拖拽导入**: 直接拖拽图片文件或文件夹到应用窗口
+- 🖼️ **缩略图预览**: 网格或列表视图显示导入的图片
+- ⚙️ **可视化设置**: 直观的水印参数配置界面
+- 📤 **灵活导出**: 自定义输出目录、文件命名和格式
+- 📊 **实时进度**: 处理进度条和状态显示
+
+### 💻 命令行版本
 
 ```bash
 # 处理单张图片
@@ -78,7 +101,50 @@ python main.py /path/to/photos -c white -s 24 --save-config my_config.json
 
 ## 📖 详细用法
 
-### 命令行参数
+### 🖥️ GUI界面使用
+
+#### 启动应用
+```bash
+python gui_main.py
+```
+
+#### 基本操作流程
+1. **导入图片**
+   - 拖拽文件/文件夹到应用窗口
+   - 点击"选择文件"或"选择文件夹"按钮
+   - 支持批量导入和递归子目录
+
+2. **预览和选择**
+   - 在"图片列表"标签页查看缩略图
+   - 切换网格视图或列表视图
+   - 选择要处理的图片（默认处理全部）
+
+3. **配置水印**
+   - 在左侧设置面板调整基本参数
+   - 字体颜色、位置、透明度等
+   - 点击"高级设置"进行更多配置
+
+4. **导出设置**
+   - 点击"导出图片"按钮
+   - 选择输出目录（不能与原图目录相同）
+   - 设置文件命名规则（原名/前缀/后缀）
+   - 选择输出格式（JPEG/PNG）
+   - 调整图片质量和尺寸
+
+5. **开始处理**
+   - 点击"导出"开始处理
+   - 查看实时进度和状态
+   - 处理完成后查看结果统计
+
+#### GUI快捷键
+- `Ctrl+O`: 导入文件
+- `Ctrl+Shift+O`: 导入文件夹
+- `Ctrl+E`: 导出图片
+- `Ctrl+A`: 全选图片
+- `Ctrl+L`: 清空列表
+- `Ctrl+Q`: 退出应用
+
+### 💻 命令行参数
 
 ```
 python main.py [OPTIONS] INPUT_PATH
@@ -144,6 +210,14 @@ PhotoWatermark/
 │   │   ├── exif_reader.py     # EXIF信息读取
 │   │   ├── watermark.py       # 水印处理
 │   │   └── image_processor.py # 图像处理主模块
+│   ├── gui/                   # 图形界面模块
+│   │   ├── widgets/           # UI组件
+│   │   │   ├── drag_drop.py   # 拖拽组件
+│   │   │   ├── thumbnail.py   # 缩略图列表
+│   │   │   └── progress.py    # 进度对话框
+│   │   ├── main_window.py     # 主窗口
+│   │   ├── file_manager.py    # 文件管理器
+│   │   └── export_dialog.py   # 导出设置对话框
 │   ├── utils/                 # 工具函数
 │   │   ├── file_utils.py      # 文件操作工具
 │   │   └── color_utils.py     # 颜色处理工具
@@ -157,10 +231,15 @@ PhotoWatermark/
 │   ├── cli.py                 # 命令行界面
 │   ├── __main__.py            # 模块入口
 │   └── __init__.py
-├── main.py                    # 主程序入口
+├── docs/                      # 文档目录
+│   └── prd/                   # 产品需求文档
+│       ├── README.md          # PRD索引
+│       ├── v1.0-photo-watermark-core.md
+│       └── v2.0-gui-file-processing.md
+├── main.py                    # 命令行程序入口
+├── gui_main.py                # GUI程序入口
 ├── run_tests.py               # 测试运行脚本
 ├── requirements.txt           # 依赖文件
-├── PRD.md                     # 产品需求文档
 └── README.md                  # 说明文档
 ```
 
@@ -180,7 +259,23 @@ python -m unittest discover photo_watermark/tests
 
 ## 📝 使用示例
 
-### 示例1: 基本水印
+### 🖥️ GUI界面示例
+
+1. **启动应用**
+   ```bash
+   python gui_main.py
+   ```
+
+2. **快速处理流程**
+   - 拖拽图片文件夹到应用窗口
+   - 在左侧面板调整水印设置
+   - 点击"导出图片"按钮
+   - 选择输出目录和文件格式
+   - 开始处理并查看进度
+
+### 💻 命令行示例
+
+#### 示例1: 基本水印
 
 ```bash
 python main.py ./sample_photos
@@ -191,7 +286,7 @@ python main.py ./sample_photos
 - 使用默认样式（白色文字，右下角，透明度0.8）
 - 将结果保存到 `./sample_photos/sample_photos_watermark/` 目录
 
-### 示例2: 自定义样式
+#### 示例2: 自定义样式
 
 ```bash
 python main.py ./photos -c "rgb(255,255,0)" -p center -s 36 -a 0.6 -f "DD MMM YYYY"
@@ -204,7 +299,7 @@ python main.py ./photos -c "rgb(255,255,0)" -p center -s 36 -a 0.6 -f "DD MMM YY
 - 透明度0.6
 - 日期格式为 "15 Mar 2024"
 
-### 示例3: 使用配置文件
+#### 示例3: 使用配置文件
 
 ```bash
 # 首先保存配置
@@ -214,7 +309,7 @@ python main.py ./photos -c red -s 28 -p top-right --save-config red_style.json
 python main.py ./new_photos --config red_style.json
 ```
 
-### 示例4: 预览和详细输出
+#### 示例4: 预览和详细输出
 
 ```bash
 python main.py ./photos --preview --verbose
