@@ -52,8 +52,8 @@ class MainWindow:
     def _setup_window(self):
         """设置主窗口"""
         self.root.title("PhotoWatermark - 图片水印工具")
-        self.root.geometry("1200x800")
-        self.root.minsize(800, 600)
+        self.root.geometry("1400x900")  # 增加默认窗口大小
+        self.root.minsize(1000, 700)   # 增加最小窗口大小
         
         # 设置图标（如果有的话）
         try:
@@ -161,6 +161,9 @@ class MainWindow:
         
         # 右侧图片区域
         self._create_image_area(main_paned)
+        
+        # 设置初始位置，确保左侧面板有足够空间
+        self.root.after(100, lambda: main_paned.sashpos(0, 420))
         
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
