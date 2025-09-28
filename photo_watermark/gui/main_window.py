@@ -9,6 +9,12 @@ from tkinter import ttk, filedialog, messagebox
 import os
 from typing import List, Optional
 
+try:
+    from tkinterdnd2 import TkinterDnD
+    DND_AVAILABLE = True
+except ImportError:
+    DND_AVAILABLE = False
+
 from .widgets.drag_drop import DragDropFrame
 from .widgets.thumbnail import ThumbnailList
 from .widgets.progress import ProgressDialog
@@ -22,7 +28,13 @@ class MainWindow:
     """主窗口类"""
     
     def __init__(self):
-        self.root = tk.Tk()
+        # 使用TkinterDnD来支持拖拽功能
+        if DND_AVAILABLE:
+            self.root = TkinterDnD.Tk()
+        else:
+            self.root = tk.Tk()
+            print("警告: tkinterdnd2 未安装，拖拽功能将不可用")
+            
         self.file_manager = FileManager()
         self.config = Config()
         self.image_processor = None
