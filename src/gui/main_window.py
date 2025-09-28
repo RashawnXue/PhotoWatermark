@@ -164,7 +164,7 @@ class MainWindow:
         
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
-        settings_frame = ttk.Frame(parent, width=300)
+        settings_frame = ttk.Frame(parent, width=350)
         settings_frame.pack_propagate(False)
         parent.add(settings_frame, weight=0)
         
@@ -231,6 +231,81 @@ class MainWindow:
             text="高级设置...",
             command=self._show_watermark_settings
         ).pack(pady=10)
+        
+        # 导出设置
+        export_frame = ttk.LabelFrame(settings_frame, text="导出设置")
+        export_frame.pack(fill='x', padx=10, pady=(0, 10))
+        
+        # 输出目录
+        ttk.Label(export_frame, text="输出目录:").pack(anchor='w', padx=10, pady=(5, 0))
+        dir_frame = ttk.Frame(export_frame)
+        dir_frame.pack(fill='x', padx=10, pady=(0, 5))
+        
+        self.output_dir_var = tk.StringVar(value=os.path.expanduser("~/Desktop"))
+        dir_entry = ttk.Entry(dir_frame, textvariable=self.output_dir_var)
+        dir_entry.pack(side='left', fill='x', expand=True)
+        
+        ttk.Button(
+            dir_frame, 
+            text="浏览", 
+            command=self._browse_output_dir,
+            width=6
+        ).pack(side='right', padx=(5, 0))
+        
+        # 输出格式
+        ttk.Label(export_frame, text="输出格式:").pack(anchor='w', padx=10, pady=(5, 0))
+        format_frame = ttk.Frame(export_frame)
+        format_frame.pack(fill='x', padx=10, pady=(0, 5))
+        
+        self.format_var = tk.StringVar(value="JPEG")
+        ttk.Radiobutton(format_frame, text="JPEG", variable=self.format_var, value="JPEG", command=self._on_format_change).pack(side='left')
+        ttk.Radiobutton(format_frame, text="PNG", variable=self.format_var, value="PNG", command=self._on_format_change).pack(side='left', padx=(10, 0))
+        
+        # JPEG质量设置
+        self.quality_frame = ttk.Frame(export_frame)
+        self.quality_frame.pack(fill='x', padx=10, pady=(0, 5))
+        
+        ttk.Label(self.quality_frame, text="JPEG质量:").pack(anchor='w')
+        quality_scale_frame = ttk.Frame(self.quality_frame)
+        quality_scale_frame.pack(fill='x', pady=(0, 5))
+        
+        self.quality_var = tk.IntVar(value=95)
+        quality_scale = ttk.Scale(
+            quality_scale_frame,
+            from_=1, to=100,
+            variable=self.quality_var,
+            orient='horizontal'
+        )
+        quality_scale.pack(side='left', fill='x', expand=True)
+        
+        self.quality_label = ttk.Label(quality_scale_frame, text="95%")
+        self.quality_label.pack(side='right', padx=(5, 0))
+        
+        # 绑定质量滑块变化事件
+        quality_scale.configure(command=self._on_quality_change)
+        
+        # 文件命名
+        ttk.Label(export_frame, text="文件命名:").pack(anchor='w', padx=10, pady=(5, 0))
+        self.naming_var = tk.StringVar(value="original")
+        
+        naming_frame1 = ttk.Frame(export_frame)
+        naming_frame1.pack(fill='x', padx=10, pady=(0, 2))
+        ttk.Radiobutton(naming_frame1, text="保留原文件名", variable=self.naming_var, value="original").pack(anchor='w')
+        
+        naming_frame2 = ttk.Frame(export_frame)
+        naming_frame2.pack(fill='x', padx=10, pady=(0, 2))
+        ttk.Radiobutton(naming_frame2, text="添加前缀:", variable=self.naming_var, value="prefix").pack(side='left')
+        self.prefix_var = tk.StringVar(value="wm_")
+        ttk.Entry(naming_frame2, textvariable=self.prefix_var, width=10).pack(side='left', padx=(5, 0))
+        
+        naming_frame3 = ttk.Frame(export_frame)
+        naming_frame3.pack(fill='x', padx=10, pady=(0, 5))
+        ttk.Radiobutton(naming_frame3, text="添加后缀:", variable=self.naming_var, value="suffix").pack(side='left')
+        self.suffix_var = tk.StringVar(value="_watermarked")
+        ttk.Entry(naming_frame3, textvariable=self.suffix_var, width=12).pack(side='left', padx=(5, 0))
+        
+        # 初始化格式相关显示
+        self._on_format_change()
         
     def _create_image_area(self, parent):
         """创建右侧图片区域"""
@@ -397,6 +472,29 @@ class MainWindow:
         # 如果列表为空，更新状态
         if total_files == 0:
             self.status_label.config(text="已清空列表")
+        
+    def _browse_output_dir(self):
+        """浏览输出目录"""
+        from tkinter import filedialog
+        directory = filedialog.askdirectory(
+            title="选择输出目录",
+            initialdir=self.output_dir_var.get() or os.path.expanduser("~")
+        )
+        if directory:
+            self.output_dir_var.set(directory)
+            
+    def _on_format_change(self):
+        """格式改变事件"""
+        if hasattr(self, 'quality_frame'):
+            if self.format_var.get() == "JPEG":
+                self.quality_frame.pack(fill='x', padx=10, pady=(0, 5))
+            else:
+                self.quality_frame.pack_forget()
+                
+    def _on_quality_change(self, value):
+        """质量滑块改变事件"""
+        if hasattr(self, 'quality_label'):
+            self.quality_label.config(text=f"{int(float(value))}%")
             
     def _select_all(self):
         """全选"""
@@ -438,12 +536,42 @@ class MainWindow:
         # 如果没有选择，则导出所有图片
         files_to_export = selected_files if selected_files else all_files
         
-        # 显示导出设置对话框
-        export_dialog = ExportDialog(self.root, on_export=self._start_export)
-        config = export_dialog.show()
+        # 从设置面板获取配置
+        config = self._get_export_config()
         
-        if config:
-            self._show_export_confirmation(files_to_export, config)
+        # 直接显示确认对话框
+        self._show_export_confirmation(files_to_export, config)
+        
+    def _get_export_config(self) -> dict:
+        """从设置面板获取导出配置"""
+        # 收集文件命名规则
+        naming_rule = {
+            'type': self.naming_var.get(),
+            'value': ''
+        }
+        
+        if naming_rule['type'] == 'prefix':
+            naming_rule['value'] = self.prefix_var.get()
+        elif naming_rule['type'] == 'suffix':
+            naming_rule['value'] = self.suffix_var.get()
+            
+        # 收集配置
+        config = {
+            'output_dir': self.output_dir_var.get(),
+            'naming_rule': naming_rule,
+            'output_format': self.format_var.get(),
+            'quality': self.quality_var.get(),
+            'resize': {
+                'enabled': False,  # 暂时不支持尺寸调整，可以后续添加
+                'type': 'none',
+                'width': 1920,
+                'height': 1080,
+                'percentage': 100,
+                'keep_ratio': True
+            }
+        }
+        
+        return config
             
     def _start_export(self, config: dict):
         """开始导出（从对话框回调）"""
@@ -464,11 +592,8 @@ class MainWindow:
         result = confirm_dialog.show()
         
         if result == 'modify':
-            # 用户选择修改设置，重新打开导出设置对话框
-            export_dialog = ExportDialog(self.root, initial_config=config, on_export=self._start_export)
-            new_config = export_dialog.show()
-            if new_config:
-                self._show_export_confirmation(files, new_config)
+            # 用户选择修改设置，提示在左侧面板修改
+            messagebox.showinfo("提示", "请在左侧设置面板中修改导出设置，然后重新点击导出按钮。")
         elif result is True:
             # 用户确认导出，开始实际导出过程
             self._start_export_with_config(files, config)

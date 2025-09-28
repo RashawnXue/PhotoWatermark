@@ -230,3 +230,6 @@ create_test_image.py
 
 # 系统文件
 .fuse_hidden*
+
+# Cursor Rules
+*.cursor/*
