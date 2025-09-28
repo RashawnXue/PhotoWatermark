@@ -46,7 +46,7 @@ class ExportDialog:
         """创建对话框窗口"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title("导出设置")
-        self.dialog.geometry("500x600")
+        self.dialog.geometry("500x650")
         self.dialog.resizable(False, False)
         
         # 设置为模态对话框
@@ -284,10 +284,26 @@ class ExportDialog:
     def _create_buttons(self, parent):
         """创建按钮区域"""
         button_frame = ttk.Frame(parent)
-        button_frame.pack(fill='x', pady=(20, 0))
+        button_frame.pack(fill='x', pady=(20, 10))
         
-        ttk.Button(button_frame, text="取消", command=self._on_cancel).pack(side='right', padx=(5, 0))
-        ttk.Button(button_frame, text="导出", command=self._on_export).pack(side='right')
+        # 取消按钮
+        cancel_btn = ttk.Button(
+            button_frame, 
+            text="取消", 
+            command=self._on_cancel
+        )
+        cancel_btn.pack(side='right', padx=(5, 0))
+        
+        # 确认导出按钮 - 使用更明显的样式
+        export_btn = ttk.Button(
+            button_frame, 
+            text="确认导出", 
+            command=self._on_export
+        )
+        export_btn.pack(side='right', padx=(0, 5))
+        
+        # 设置默认焦点
+        export_btn.focus_set()
         
     def _browse_output_dir(self):
         """浏览输出目录"""
