@@ -152,24 +152,21 @@ class MainWindow:
         
     def _create_main_area(self):
         """创建主要区域"""
-        # 创建水平分割面板
-        main_paned = ttk.PanedWindow(self.root, orient='horizontal')
-        main_paned.pack(fill='both', expand=True, padx=5, pady=5)
+        # 使用Frame代替PanedWindow实现固定左侧宽度的布局
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill='both', expand=True, padx=5, pady=5)
         
-        # 左侧设置面板
-        self._create_settings_panel(main_paned)
+        # 左侧设置面板 - 固定宽度
+        self._create_settings_panel(main_frame)
         
-        # 右侧图片区域
-        self._create_image_area(main_paned)
-        
-        # 设置初始位置，确保左侧面板有足够空间
-        self.root.after(100, lambda: main_paned.sashpos(0, 420))
+        # 右侧图片区域 - 自适应剩余空间
+        self._create_image_area(main_frame)
         
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
-        settings_frame = ttk.Frame(parent, width=400)
+        settings_frame = ttk.Frame(parent, width=420)
         settings_frame.pack_propagate(False)
-        parent.add(settings_frame, weight=0)  # 固定左侧面板宽度
+        settings_frame.pack(side='left', fill='y')  # 固定宽度，填充高度
         
         # 创建滚动框架
         canvas = tk.Canvas(settings_frame, highlightthickness=0)
@@ -347,7 +344,7 @@ class MainWindow:
     def _create_image_area(self, parent):
         """创建右侧图片区域"""
         image_frame = ttk.Frame(parent)
-        parent.add(image_frame, weight=1)
+        image_frame.pack(side='right', fill='both', expand=True)  # 填充剩余空间
         
         # 创建笔记本控件（标签页）
         notebook = ttk.Notebook(image_frame)
