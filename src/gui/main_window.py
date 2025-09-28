@@ -587,7 +587,7 @@ class MainWindow:
             self.root, 
             files, 
             config, 
-            on_confirm=lambda: self._start_export_with_config(files, config)
+            on_confirm=None  # 不使用回调，避免重复调用
         )
         result = confirm_dialog.show()
         
