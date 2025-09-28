@@ -183,7 +183,7 @@ class FileManager:
             
     def process_images_async(self, input_files: List[str], output_dir: str,
                            naming_rule: Dict, output_format: str, quality: int,
-                           resize_config: Dict, watermark_processor,
+                           resize_config: Dict, image_processor,
                            progress_callback: Optional[Callable] = None,
                            complete_callback: Optional[Callable] = None):
         """异步处理图片"""
@@ -210,7 +210,7 @@ class FileManager:
                         success = self._process_single_image(
                             input_file, output_dir, naming_rule, 
                             output_format, quality, resize_config, 
-                            watermark_processor
+                            image_processor
                         )
                         
                         if success:
@@ -238,7 +238,7 @@ class FileManager:
         
     def _process_single_image(self, input_file: str, output_dir: str,
                             naming_rule: Dict, output_format: str, quality: int,
-                            resize_config: Dict, watermark_processor) -> bool:
+                            resize_config: Dict, image_processor) -> bool:
         """处理单张图片"""
         try:
             # 生成输出文件名
@@ -255,9 +255,9 @@ class FileManager:
                 output_path = f"{name}_{counter}{ext}"
                 counter += 1
                 
-            # 使用水印处理器处理图片
-            if watermark_processor:
-                success = watermark_processor.process_single_image(
+            # 使用图像处理器处理图片
+            if image_processor:
+                success, message = image_processor.process_single_image(
                     input_file, output_path, output_format, quality, resize_config
                 )
                 return success
