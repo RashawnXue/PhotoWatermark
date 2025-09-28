@@ -704,10 +704,19 @@ class MainWindow:
         position_str = self.position_var.get()
         position = Position(position_str)
 
+        # 决定时间水印的字体大小来源（时间水印使用 timestamp_font_size_var）
+        chosen_font_size = None
+        if watermark_type == WatermarkType.TIMESTAMP:
+            chosen_font_size = self.timestamp_font_size_var.get() if hasattr(self, 'timestamp_font_size_var') else None
+        else:
+            chosen_font_size = self.text_font_size_var.get() if hasattr(self, 'text_font_size_var') else None
+
         # 创建主配置
         watermark_config = WatermarkConfig(
             watermark_type=watermark_type,
             position=position,
+            font_size=chosen_font_size,
+            font_path=selected_font_path,
             font_color=self.color_var.get() if hasattr(self, 'color_var') else "white",
             font_alpha=self.alpha_var.get() if hasattr(self, 'alpha_var') else 0.8,
             text_watermark=text_watermark,
@@ -905,6 +914,13 @@ class MainWindow:
             command=lambda v: self._schedule_redraw()
         )
         alpha_scale.pack(fill='x', padx=10, pady=(0, 10))
+        # 字体大小（用于时间水印）
+        ttk.Label(timestamp_frame, text="字体大小:").pack(anchor='w', padx=10, pady=(0, 0))
+        self.timestamp_font_size_var = tk.IntVar(value=36)
+        ts_size_entry = ttk.Entry(timestamp_frame, textvariable=self.timestamp_font_size_var, width=8)
+        ts_size_entry.pack(anchor='w', padx=10, pady=(0, 10))
+        self.timestamp_font_size_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         self._schedule_redraw()
     
     def _create_text_watermark_tab(self):
@@ -1318,6 +1334,27 @@ class MainWindow:
             watermark_config = self._get_watermark_config()
             preview_config = Config(watermark_config)
             preview_config.config.preview_mode = True  # 标记为预览模式
+            # 如果当前为时间水印，确保预览配置使用时间选项的字体大小和字体路径
+            try:
+                if preview_config.config.watermark_type == WatermarkType.TIMESTAMP:
+                    if hasattr(self, 'timestamp_font_size_var'):
+                        preview_config.config.font_size = self.timestamp_font_size_var.get()
+                    # 使用当前选中的字体（共用文本水印的字体选择）
+                    selected_font_path = None
+                    try:
+                        selected_font_name = self.text_font_var.get() if hasattr(self, 'text_font_var') else ""
+                        if hasattr(self, 'recommended_fonts'):
+                            for font_info in self.recommended_fonts:
+                                if font_info.get('name') == selected_font_name:
+                                    selected_font_path = font_info.get('path')
+                                    break
+                    except Exception:
+                        selected_font_path = None
+
+                    if selected_font_path:
+                        preview_config.config.font_path = selected_font_path
+            except Exception:
+                pass
             # 合成水印
             processor = ImageProcessor(preview_config)
             # 依据当前水印类型准备文本（时间水印需从EXIF或回退到当前时间）
@@ -1359,11 +1396,27 @@ class MainWindow:
                 anchor='center'
             )
         except Exception as e:
+            # 如果是因为字体大小输入非法（非数字）导致的错误，给出友好提示
+            bad_font_input = False
+            try:
+                # 尝试读取并转换时间水印字号/文本水印字号
+                if hasattr(self, 'timestamp_font_size_var'):
+                    _ = int(self.timestamp_font_size_var.get())
+                if hasattr(self, 'text_font_size_var'):
+                    _ = int(self.text_font_size_var.get())
+            except Exception:
+                bad_font_input = True
+
             self.preview_canvas.delete('all')
+            if bad_font_input:
+                message = "请正确输入字体大小"
+            else:
+                message = f"图片加载失败\n{e}"
+
             self.preview_canvas.create_text(
                 self.preview_canvas.winfo_width()//2,
                 self.preview_canvas.winfo_height()//2,
-                text=f"图片加载失败\n{e}",
+                text=message,
                 fill="red",
                 font=("Arial", 14)
             )

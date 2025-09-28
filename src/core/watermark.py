@@ -326,9 +326,26 @@ class WatermarkProcessor:
         # 获取图片尺寸
         img_width, img_height = watermarked_image.size
         
-        # 计算字体大小
-        font_size = self.config.get_auto_font_size(img_width, img_height)
-        font = self._get_font(font_size)
+        # 计算并使用配置的字体大小（优先使用显式配置的 font_size）
+        configured_size = None
+        try:
+            configured_size = self.config.config.font_size
+        except Exception:
+            configured_size = None
+
+        if configured_size is not None:
+            font_size = configured_size
+        else:
+            font_size = self.config.get_auto_font_size(img_width, img_height)
+
+        # 使用配置的字体路径（如果有）
+        font_path = None
+        try:
+            font_path = self.config.config.font_path
+        except Exception:
+            font_path = None
+
+        font = self._get_font(font_size, font_path)
         
         # 获取文本尺寸
         text_width, text_height = self._get_text_size(text, font)
