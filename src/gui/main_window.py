@@ -164,7 +164,7 @@ class MainWindow:
         
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
-        settings_frame = ttk.Frame(parent, width=420)
+        settings_frame = ttk.Frame(parent, width=350)
         settings_frame.pack_propagate(False)
         settings_frame.pack(side='left', fill='y')  # 固定宽度，填充高度
         
