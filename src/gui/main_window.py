@@ -367,49 +367,67 @@ class MainWindow:
         """创建右侧图片区域"""
         image_frame = ttk.Frame(parent)
         parent.add(image_frame, weight=1)
-        
-        # 创建笔记本控件（标签页）
-        notebook = ttk.Notebook(image_frame)
+
+        # 垂直分割：上为主预览，下为 notebook（导入/列表）
+        preview_paned = ttk.PanedWindow(image_frame, orient='vertical')
+        preview_paned.pack(fill='both', expand=True)
+
+        # 主预览区域（上）
+        self.preview_frame = ttk.Frame(preview_paned)
+        preview_paned.add(self.preview_frame, weight=3)
+
+        self.preview_canvas = tk.Canvas(self.preview_frame, bg='black', highlightthickness=1)
+        self.preview_canvas.pack(fill='both', expand=True, padx=8, pady=8)
+
+        # 下部 notebook 区域，放置导入和列表
+        bottom_frame = ttk.Frame(preview_paned)
+        preview_paned.add(bottom_frame, weight=2)
+
+        # 创建笔记本控件（标签页）放在下部
+        notebook = ttk.Notebook(bottom_frame)
         notebook.pack(fill='both', expand=True)
-        
+
         # 拖拽导入标签页
         drag_frame = ttk.Frame(notebook)
         notebook.add(drag_frame, text="导入图片")
-        
+
         # 创建拖拽区域
         self.drag_drop = DragDropFrame(drag_frame, self._on_files_dropped)
         self.drag_drop.pack(fill='both', expand=True)
-        
+
         # 添加导入按钮
         button_frame = ttk.Frame(drag_frame)
         button_frame.pack(fill='x', padx=10, pady=10)
-        
+
         ttk.Button(
-            button_frame, 
-            text="选择文件", 
+            button_frame,
+            text="选择文件",
             command=self._import_files
         ).pack(side='left', padx=(0, 5))
-        
+
         ttk.Button(
-            button_frame, 
-            text="选择文件夹", 
+            button_frame,
+            text="选择文件夹",
             command=self._import_folder
         ).pack(side='left')
-        
+
         # 图片列表标签页
         list_frame = ttk.Frame(notebook)
         notebook.add(list_frame, text="图片列表")
-        
+
         # 创建缩略图列表
         self.thumbnail_list = ThumbnailList(
-            list_frame, 
+            list_frame,
             self._on_selection_change,
             self._on_list_change  # 添加列表变化回调
         )
         self.thumbnail_list.pack(fill='both', expand=True)
-        
-        # 保存notebook引用
+
+        # 保存引用
         self.notebook = notebook
+
+        # 初始化预览内容
+        self._init_preview_area()
         
     def _create_status_bar(self):
         """创建状态栏"""
@@ -515,6 +533,11 @@ class MainWindow:
             self.status_label.config(text=f"已选择 {count} 张图片")
         else:
             self.status_label.config(text="准备就绪")
+        # 更新主预览区域，选中变化应立即反映
+        try:
+            self._update_preview_image(selected_files)
+        except Exception:
+            pass
             
     def _on_list_change(self):
         """列表变化事件处理"""
@@ -1251,6 +1274,82 @@ class MainWindow:
         
         if filename:
             self.image_path_var.set(filename)
+
+    def _init_preview_area(self):
+        """初始化主预览区域内容"""
+        # 显示提示文字
+        self.preview_canvas.delete('all')
+        w = max(200, self.preview_canvas.winfo_reqwidth())
+        h = max(120, self.preview_canvas.winfo_reqheight())
+        self.preview_canvas.create_text(
+            w//2, h//2,
+            text="请选择图片进行预览",
+            fill="white",
+            font=("Arial", 18)
+        )
+        # 绑定画布尺寸变化，重绘当前预览
+        self.preview_canvas.bind('<Configure>', lambda e: self._redraw_preview())
+
+    def _update_preview_image(self, selected_files: List[str]):
+        """切换并绘制预览图片（仅显示图片，不绘制水印，后续会加入水印合成）"""
+        # 若无选择，显示提示
+        if not selected_files:
+            self._init_preview_area()
+            return
+
+        img_path = selected_files[0]
+        try:
+            from PIL import Image, ImageTk
+            img = Image.open(img_path)
+
+            # 计算目标尺寸，保留长宽比
+            canvas_w = max(10, self.preview_canvas.winfo_width())
+            canvas_h = max(10, self.preview_canvas.winfo_height())
+            img_ratio = img.width / img.height
+            canvas_ratio = canvas_w / canvas_h
+
+            if img_ratio > canvas_ratio:
+                target_w = canvas_w - 20
+                target_h = int(target_w / img_ratio)
+            else:
+                target_h = canvas_h - 20
+                target_w = int(target_h * img_ratio)
+
+            img = img.copy()
+            img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+
+            self._preview_img_tk = ImageTk.PhotoImage(img)
+            self.preview_canvas.delete('all')
+            self.preview_canvas.create_image(
+                canvas_w//2, canvas_h//2,
+                image=self._preview_img_tk,
+                anchor='center'
+            )
+        except Exception as e:
+            self.preview_canvas.delete('all')
+            self.preview_canvas.create_text(
+                self.preview_canvas.winfo_width()//2,
+                self.preview_canvas.winfo_height()//2,
+                text=f"图片加载失败\n{e}",
+                fill="red",
+                font=("Arial", 14)
+            )
+
+    def _redraw_preview(self):
+        """画布尺寸变化或其他情况需要重绘当前选中图片时调用"""
+        try:
+            selected = self.thumbnail_list.get_selected_files()
+            if selected:
+                self._update_preview_image(selected)
+            else:
+                # 若未选择，但列表中有文件，则显示第一张作为预览（非选中状态）
+                all_files = self.thumbnail_list.get_all_files()
+                if all_files:
+                    self._update_preview_image([all_files[0]])
+                else:
+                    self._init_preview_area()
+        except Exception:
+            pass
 
     def _show_watermark_settings(self):
         """显示水印高级设置"""
