@@ -164,7 +164,7 @@ class MainWindow:
         
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
-        settings_frame = ttk.Frame(parent, width=350)
+        settings_frame = ttk.Frame(parent, width=380)  # 增加宽度以容纳滚动条
         settings_frame.pack_propagate(False)
         parent.add(settings_frame, weight=0)
         
@@ -181,9 +181,9 @@ class MainWindow:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # 布局滚动组件 - 调整padding避免遮挡
+        # 布局滚动组件 - 为滚动条预留空间
         scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
+        canvas.pack(side="left", fill="both", expand=True, padx=(0, 5))
         
         # 绑定鼠标滚轮事件
         def _on_mousewheel(event):
