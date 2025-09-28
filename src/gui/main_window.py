@@ -23,6 +23,7 @@ from .file_manager import FileManager
 from .export_dialog import ExportDialog
 from ..core.config import Config, Position, DateFormat
 from ..core.image_processor import ImageProcessor
+from ..utils.font_manager import font_manager
 
 
 class MainWindow:
@@ -646,12 +647,24 @@ class MainWindow:
         else:
             watermark_type = WatermarkType.IMAGE
         
+        # 获取选中字体的路径
+        selected_font_name = self.text_font_var.get() if hasattr(self, 'text_font_var') else ""
+        selected_font_path = None
+        
+        if hasattr(self, 'recommended_fonts'):
+            for font_info in self.recommended_fonts:
+                if font_info['name'] == selected_font_name:
+                    selected_font_path = font_info['path']
+                    break
+        
         # 创建文本水印配置
         text_watermark = TextWatermarkConfig(
             text=self.text_content_var.get() if hasattr(self, 'text_content_var') else "",
             font_size=self.text_font_size_var.get() if hasattr(self, 'text_font_size_var') else 36,
             font_color=self.text_color_var.get() if hasattr(self, 'text_color_var') else "white",
             font_alpha=self.text_alpha_var.get() if hasattr(self, 'text_alpha_var') else 0.8,
+            font_path=selected_font_path,
+            font_name=selected_font_name,
             font_bold=self.text_bold_var.get() if hasattr(self, 'text_bold_var') else False,
             font_italic=self.text_italic_var.get() if hasattr(self, 'text_italic_var') else False,
             shadow_enabled=self.shadow_enabled_var.get() if hasattr(self, 'shadow_enabled_var') else False,
@@ -902,6 +915,34 @@ class MainWindow:
         font_frame = ttk.LabelFrame(text_frame, text="字体设置")
         font_frame.pack(fill='x', padx=10, pady=(5, 0))
         
+        # 字体选择
+        font_select_frame = ttk.Frame(font_frame)
+        font_select_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(font_select_frame, text="字体:").pack(side='left')
+        
+        # 获取推荐字体列表
+        self.recommended_fonts = font_manager.get_recommended_fonts()
+        font_names = [font['name'] for font in self.recommended_fonts]
+        
+        self.text_font_var = tk.StringVar()
+        if font_names:
+            # 优先选择支持中文的字体
+            chinese_fonts = [f for f in self.recommended_fonts if f.get('supports_chinese', False)]
+            if chinese_fonts:
+                self.text_font_var.set(chinese_fonts[0]['name'])
+            else:
+                self.text_font_var.set(font_names[0])
+        
+        self.text_font_combo = ttk.Combobox(
+            font_select_frame,
+            textvariable=self.text_font_var,
+            values=font_names,
+            state="readonly",
+            width=20
+        )
+        self.text_font_combo.pack(side='right')
+        self.text_font_combo.bind('<<ComboboxSelected>>', self._on_font_change)
+        
         # 字体大小
         size_frame = ttk.Frame(font_frame)
         size_frame.pack(fill='x', padx=10, pady=5)
@@ -1107,6 +1148,15 @@ class MainWindow:
             else:
                 for child in self.stroke_frame.winfo_children():
                     self._disable_widget_recursive(child)
+    
+    def _on_font_change(self, event=None):
+        """字体选择变化事件"""
+        selected_font_name = self.text_font_var.get()
+        # 找到对应的字体路径
+        for font_info in self.recommended_fonts:
+            if font_info['name'] == selected_font_name:
+                # 这里可以添加字体预览功能
+                break
     
     def _browse_watermark_image(self):
         """浏览水印图片"""

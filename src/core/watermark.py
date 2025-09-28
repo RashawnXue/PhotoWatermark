@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from PIL.ImageColor import getcolor
 
 from .config import Config, WatermarkConfig, WatermarkType, TextWatermarkConfig, ImageWatermarkConfig, ScaleMode
+from ..utils.font_manager import font_manager
 
 
 class WatermarkProcessor:
@@ -24,36 +25,8 @@ class WatermarkProcessor:
         # 优先使用指定的字体路径
         target_font_path = font_path or self.config.config.font_path
         
-        if target_font_path and os.path.exists(target_font_path):
-            try:
-                return ImageFont.truetype(target_font_path, font_size)
-            except Exception:
-                pass
-        
-        # 尝试使用系统默认字体
-        try:
-            # 在不同操作系统上尝试不同的默认字体
-            system_fonts = [
-                # macOS
-                "/System/Library/Fonts/Arial.ttf",
-                "/System/Library/Fonts/Helvetica.ttc",
-                # Windows
-                "C:/Windows/Fonts/arial.ttf",
-                "C:/Windows/Fonts/calibri.ttf",
-                # Linux
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            ]
-            
-            for font_path in system_fonts:
-                if os.path.exists(font_path):
-                    return ImageFont.truetype(font_path, font_size)
-            
-            # 如果都找不到，使用PIL的默认字体
-            return ImageFont.load_default()
-            
-        except Exception:
-            return ImageFont.load_default()
+        # 使用字体管理器获取字体
+        return font_manager.get_font(target_font_path, font_size, bold, italic)
     
     def _parse_color(self, color_str: str) -> Tuple[int, int, int]:
         """解析颜色字符串"""
@@ -257,6 +230,10 @@ class WatermarkProcessor:
             watermarked_image = watermarked_image.convert('RGBA')
         
         watermarked_image = Image.alpha_composite(watermarked_image, overlay)
+        
+        # 如果原图不是RGBA模式，转换回原模式
+        if image.mode != 'RGBA':
+            watermarked_image = watermarked_image.convert(image.mode)
         
         return watermarked_image
     

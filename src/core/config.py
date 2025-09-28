@@ -56,6 +56,7 @@ class TextWatermarkConfig:
     font_color: str = "white"
     font_alpha: float = 0.8  # 透明度 0-1
     font_path: Optional[str] = None  # 自定义字体路径
+    font_name: Optional[str] = None  # 字体名称（用于GUI显示）
     font_bold: bool = False  # 粗体
     font_italic: bool = False  # 斜体
     
