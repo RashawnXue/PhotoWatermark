@@ -204,51 +204,8 @@ class MainWindow:
             variable=self.recursive_var
         ).pack(anchor='w', padx=10, pady=5)
         
-        # 水印设置（简化版）
-        watermark_frame = ttk.LabelFrame(scrollable_frame, text="水印设置")
-        watermark_frame.pack(fill='x', padx=10, pady=(0, 10))
-        
-        # 字体颜色
-        ttk.Label(watermark_frame, text="字体颜色:").pack(anchor='w', padx=10, pady=(5, 0))
-        self.color_var = tk.StringVar(value="white")
-        color_combo = ttk.Combobox(
-            watermark_frame, 
-            textvariable=self.color_var,
-            values=["white", "black", "red", "blue", "green", "yellow"],
-            state="readonly"
-        )
-        color_combo.pack(fill='x', padx=10, pady=(0, 5))
-        
-        # 位置
-        ttk.Label(watermark_frame, text="水印位置:").pack(anchor='w', padx=10, pady=(5, 0))
-        self.position_var = tk.StringVar(value="bottom-right")
-        position_combo = ttk.Combobox(
-            watermark_frame,
-            textvariable=self.position_var,
-            values=["top-left", "top-center", "top-right", 
-                   "center-left", "center", "center-right",
-                   "bottom-left", "bottom-center", "bottom-right"],
-            state="readonly"
-        )
-        position_combo.pack(fill='x', padx=10, pady=(0, 5))
-        
-        # 透明度
-        ttk.Label(watermark_frame, text="透明度:").pack(anchor='w', padx=10, pady=(5, 0))
-        self.alpha_var = tk.DoubleVar(value=0.8)
-        alpha_scale = ttk.Scale(
-            watermark_frame,
-            from_=0.1, to=1.0,
-            variable=self.alpha_var,
-            orient='horizontal'
-        )
-        alpha_scale.pack(fill='x', padx=10, pady=(0, 5))
-        
-        # 高级设置按钮
-        ttk.Button(
-            watermark_frame,
-            text="高级设置...",
-            command=self._show_watermark_settings
-        ).pack(pady=10)
+        # 水印设置
+        self._create_watermark_settings(scrollable_frame)
         
         # 导出设置
         export_frame = ttk.LabelFrame(scrollable_frame, text="导出设置")
@@ -793,6 +750,301 @@ class MainWindow:
                 f"以下文件处理失败:\\n{failed_list}"
             )
             
+    def _create_watermark_settings(self, parent):
+        """创建水印设置界面"""
+        watermark_frame = ttk.LabelFrame(parent, text="水印设置")
+        watermark_frame.pack(fill='x', padx=10, pady=(0, 10))
+        
+        # 创建选项卡
+        self.watermark_notebook = ttk.Notebook(watermark_frame)
+        self.watermark_notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # 时间水印选项卡
+        self._create_timestamp_watermark_tab()
+        
+        # 文本水印选项卡
+        self._create_text_watermark_tab()
+        
+        # 图片水印选项卡
+        self._create_image_watermark_tab()
+        
+        # 通用位置设置
+        self._create_position_settings(watermark_frame)
+    
+    def _create_timestamp_watermark_tab(self):
+        """创建时间水印选项卡"""
+        timestamp_frame = ttk.Frame(self.watermark_notebook)
+        self.watermark_notebook.add(timestamp_frame, text="时间水印")
+        
+        # 字体颜色
+        ttk.Label(timestamp_frame, text="字体颜色:").pack(anchor='w', padx=10, pady=(10, 0))
+        self.color_var = tk.StringVar(value="white")
+        color_combo = ttk.Combobox(
+            timestamp_frame, 
+            textvariable=self.color_var,
+            values=["white", "black", "red", "blue", "green", "yellow"],
+            state="readonly"
+        )
+        color_combo.pack(fill='x', padx=10, pady=(0, 5))
+        
+        # 透明度
+        ttk.Label(timestamp_frame, text="透明度:").pack(anchor='w', padx=10, pady=(5, 0))
+        self.alpha_var = tk.DoubleVar(value=0.8)
+        alpha_scale = ttk.Scale(
+            timestamp_frame,
+            from_=0.1, to=1.0,
+            variable=self.alpha_var,
+            orient='horizontal'
+        )
+        alpha_scale.pack(fill='x', padx=10, pady=(0, 10))
+    
+    def _create_text_watermark_tab(self):
+        """创建文本水印选项卡"""
+        text_frame = ttk.Frame(self.watermark_notebook)
+        self.watermark_notebook.add(text_frame, text="文本水印")
+        
+        # 文本内容
+        ttk.Label(text_frame, text="水印文本:").pack(anchor='w', padx=10, pady=(10, 0))
+        self.text_content_var = tk.StringVar(value="")
+        text_entry = tk.Text(text_frame, height=3, wrap=tk.WORD)
+        text_entry.pack(fill='x', padx=10, pady=(0, 5))
+        
+        # 绑定文本变化事件
+        def on_text_change():
+            content = text_entry.get("1.0", tk.END).strip()
+            self.text_content_var.set(content)
+        
+        text_entry.bind('<KeyRelease>', lambda e: on_text_change())
+        self.text_entry_widget = text_entry
+        
+        # 字体设置
+        font_frame = ttk.LabelFrame(text_frame, text="字体设置")
+        font_frame.pack(fill='x', padx=10, pady=(5, 0))
+        
+        # 字体大小
+        size_frame = ttk.Frame(font_frame)
+        size_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(size_frame, text="字体大小:").pack(side='left')
+        self.text_font_size_var = tk.IntVar(value=36)
+        size_entry = ttk.Entry(size_frame, textvariable=self.text_font_size_var, width=8)
+        size_entry.pack(side='right')
+        
+        # 字体颜色
+        color_frame = ttk.Frame(font_frame)
+        color_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(color_frame, text="字体颜色:").pack(side='left')
+        self.text_color_var = tk.StringVar(value="white")
+        text_color_combo = ttk.Combobox(
+            color_frame, 
+            textvariable=self.text_color_var,
+            values=["white", "black", "red", "blue", "green", "yellow", "orange", "purple"],
+            state="readonly",
+            width=10
+        )
+        text_color_combo.pack(side='right')
+        
+        # 字体样式
+        style_frame = ttk.Frame(font_frame)
+        style_frame.pack(fill='x', padx=10, pady=5)
+        self.text_bold_var = tk.BooleanVar()
+        self.text_italic_var = tk.BooleanVar()
+        ttk.Checkbutton(style_frame, text="粗体", variable=self.text_bold_var).pack(side='left')
+        ttk.Checkbutton(style_frame, text="斜体", variable=self.text_italic_var).pack(side='left', padx=(10, 0))
+        
+        # 透明度
+        alpha_frame = ttk.Frame(font_frame)
+        alpha_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(alpha_frame, text="透明度:").pack(side='left')
+        self.text_alpha_var = tk.DoubleVar(value=0.8)
+        alpha_scale = ttk.Scale(
+            alpha_frame,
+            from_=0.1, to=1.0,
+            variable=self.text_alpha_var,
+            orient='horizontal',
+            length=150
+        )
+        alpha_scale.pack(side='right')
+        
+        # 效果设置
+        effects_frame = ttk.LabelFrame(text_frame, text="视觉效果")
+        effects_frame.pack(fill='x', padx=10, pady=(5, 0))
+        
+        # 阴影效果
+        self.shadow_enabled_var = tk.BooleanVar()
+        shadow_check = ttk.Checkbutton(
+            effects_frame, 
+            text="启用阴影", 
+            variable=self.shadow_enabled_var,
+            command=self._on_shadow_toggle
+        )
+        shadow_check.pack(anchor='w', padx=10, pady=5)
+        
+        self.shadow_frame = ttk.Frame(effects_frame)
+        self.shadow_frame.pack(fill='x', padx=20, pady=(0, 5))
+        
+        # 阴影偏移
+        offset_frame = ttk.Frame(self.shadow_frame)
+        offset_frame.pack(fill='x', pady=2)
+        ttk.Label(offset_frame, text="偏移:").pack(side='left')
+        self.shadow_offset_x_var = tk.IntVar(value=2)
+        self.shadow_offset_y_var = tk.IntVar(value=2)
+        ttk.Entry(offset_frame, textvariable=self.shadow_offset_x_var, width=5).pack(side='left', padx=(5, 2))
+        ttk.Label(offset_frame, text="x").pack(side='left', padx=(0, 5))
+        ttk.Entry(offset_frame, textvariable=self.shadow_offset_y_var, width=5).pack(side='left', padx=(0, 2))
+        ttk.Label(offset_frame, text="y").pack(side='left')
+        
+        # 描边效果
+        self.stroke_enabled_var = tk.BooleanVar()
+        stroke_check = ttk.Checkbutton(
+            effects_frame, 
+            text="启用描边", 
+            variable=self.stroke_enabled_var,
+            command=self._on_stroke_toggle
+        )
+        stroke_check.pack(anchor='w', padx=10, pady=5)
+        
+        self.stroke_frame = ttk.Frame(effects_frame)
+        self.stroke_frame.pack(fill='x', padx=20, pady=(0, 10))
+        
+        # 描边宽度
+        stroke_width_frame = ttk.Frame(self.stroke_frame)
+        stroke_width_frame.pack(fill='x', pady=2)
+        ttk.Label(stroke_width_frame, text="描边宽度:").pack(side='left')
+        self.stroke_width_var = tk.IntVar(value=1)
+        ttk.Entry(stroke_width_frame, textvariable=self.stroke_width_var, width=5).pack(side='right')
+        
+        # 初始化效果控件状态
+        self._on_shadow_toggle()
+        self._on_stroke_toggle()
+    
+    def _create_image_watermark_tab(self):
+        """创建图片水印选项卡"""
+        image_frame = ttk.Frame(self.watermark_notebook)
+        self.watermark_notebook.add(image_frame, text="图片水印")
+        
+        # 图片选择
+        ttk.Label(image_frame, text="水印图片:").pack(anchor='w', padx=10, pady=(10, 0))
+        file_frame = ttk.Frame(image_frame)
+        file_frame.pack(fill='x', padx=10, pady=(0, 5))
+        
+        self.image_path_var = tk.StringVar(value="")
+        path_entry = ttk.Entry(file_frame, textvariable=self.image_path_var)
+        path_entry.pack(side='left', fill='x', expand=True)
+        
+        ttk.Button(
+            file_frame, 
+            text="浏览", 
+            command=self._browse_watermark_image,
+            width=8
+        ).pack(side='right', padx=(5, 0))
+        
+        # 缩放设置
+        scale_frame = ttk.LabelFrame(image_frame, text="尺寸设置")
+        scale_frame.pack(fill='x', padx=10, pady=(5, 0))
+        
+        # 缩放模式
+        self.scale_mode_var = tk.StringVar(value="percentage")
+        
+        percentage_frame = ttk.Frame(scale_frame)
+        percentage_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Radiobutton(
+            percentage_frame, text="按比例:", 
+            variable=self.scale_mode_var, value="percentage"
+        ).pack(side='left')
+        self.scale_percentage_var = tk.DoubleVar(value=20.0)
+        percentage_entry = ttk.Entry(percentage_frame, textvariable=self.scale_percentage_var, width=8)
+        percentage_entry.pack(side='left', padx=(5, 2))
+        ttk.Label(percentage_frame, text="%").pack(side='left')
+        
+        pixel_frame = ttk.Frame(scale_frame)
+        pixel_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Radiobutton(
+            pixel_frame, text="按像素:", 
+            variable=self.scale_mode_var, value="pixel"
+        ).pack(side='left')
+        self.scale_width_var = tk.IntVar(value=100)
+        self.scale_height_var = tk.IntVar(value=100)
+        ttk.Entry(pixel_frame, textvariable=self.scale_width_var, width=6).pack(side='left', padx=(5, 2))
+        ttk.Label(pixel_frame, text="x").pack(side='left', padx=(0, 2))
+        ttk.Entry(pixel_frame, textvariable=self.scale_height_var, width=6).pack(side='left', padx=(0, 2))
+        ttk.Label(pixel_frame, text="px").pack(side='left')
+        
+        # 保持宽高比
+        self.keep_ratio_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            scale_frame, text="保持宽高比", 
+            variable=self.keep_ratio_var
+        ).pack(anchor='w', padx=10, pady=5)
+        
+        # 透明度
+        alpha_frame = ttk.Frame(scale_frame)
+        alpha_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(alpha_frame, text="透明度:").pack(side='left')
+        self.image_alpha_var = tk.DoubleVar(value=0.8)
+        alpha_scale = ttk.Scale(
+            alpha_frame,
+            from_=0.1, to=1.0,
+            variable=self.image_alpha_var,
+            orient='horizontal',
+            length=150
+        )
+        alpha_scale.pack(side='right')
+    
+    def _create_position_settings(self, parent):
+        """创建通用位置设置"""
+        position_frame = ttk.LabelFrame(parent, text="位置设置")
+        position_frame.pack(fill='x', padx=10, pady=(5, 0))
+        
+        ttk.Label(position_frame, text="水印位置:").pack(anchor='w', padx=10, pady=(5, 0))
+        self.position_var = tk.StringVar(value="bottom-right")
+        position_combo = ttk.Combobox(
+            position_frame,
+            textvariable=self.position_var,
+            values=["top-left", "top-center", "top-right", 
+                   "center-left", "center", "center-right",
+                   "bottom-left", "bottom-center", "bottom-right"],
+            state="readonly"
+        )
+        position_combo.pack(fill='x', padx=10, pady=(0, 10))
+    
+    def _on_shadow_toggle(self):
+        """阴影效果开关切换"""
+        if hasattr(self, 'shadow_frame'):
+            if self.shadow_enabled_var.get():
+                for child in self.shadow_frame.winfo_children():
+                    self._enable_widget_recursive(child)
+            else:
+                for child in self.shadow_frame.winfo_children():
+                    self._disable_widget_recursive(child)
+    
+    def _on_stroke_toggle(self):
+        """描边效果开关切换"""
+        if hasattr(self, 'stroke_frame'):
+            if self.stroke_enabled_var.get():
+                for child in self.stroke_frame.winfo_children():
+                    self._enable_widget_recursive(child)
+            else:
+                for child in self.stroke_frame.winfo_children():
+                    self._disable_widget_recursive(child)
+    
+    def _browse_watermark_image(self):
+        """浏览水印图片"""
+        from tkinter import filedialog
+        file_types = [
+            ("图片文件", "*.png *.jpg *.jpeg *.bmp *.gif"),
+            ("PNG文件", "*.png"),
+            ("JPEG文件", "*.jpg *.jpeg"),
+            ("所有文件", "*.*")
+        ]
+        
+        filename = filedialog.askopenfilename(
+            title="选择水印图片",
+            filetypes=file_types
+        )
+        
+        if filename:
+            self.image_path_var.set(filename)
+
     def _show_watermark_settings(self):
         """显示水印高级设置"""
         # 这里可以打开更详细的水印设置对话框
