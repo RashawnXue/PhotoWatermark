@@ -1291,8 +1291,7 @@ class MainWindow:
         self.preview_canvas.bind('<Configure>', lambda e: self._redraw_preview())
 
     def _update_preview_image(self, selected_files: List[str]):
-        """切换并绘制预览图片（仅显示图片，不绘制水印，后续会加入水印合成）"""
-        # 若无选择，显示提示
+        """切换并绘制预览图片（叠加当前水印设置）"""
         if not selected_files:
             self._init_preview_area()
             return
@@ -1300,12 +1299,23 @@ class MainWindow:
         img_path = selected_files[0]
         try:
             from PIL import Image, ImageTk
+            from ..core.config import Config
+            from ..core.image_processor import ImageProcessor
+            # 加载原图
             img = Image.open(img_path)
+            # 获取当前水印配置
+            watermark_config = self._get_watermark_config()
+            preview_config = Config(watermark_config)
+            preview_config.config.preview_mode = True  # 标记为预览模式
+            # 合成水印
+            processor = ImageProcessor(preview_config)
+            # 仅预览时不做EXIF处理，直接用当前配置
+            watermarked_img = processor.watermark_processor.process_watermark(img)
 
-            # 计算目标尺寸，保留长宽比
+            # 缩放到预览区域
             canvas_w = max(10, self.preview_canvas.winfo_width())
             canvas_h = max(10, self.preview_canvas.winfo_height())
-            img_ratio = img.width / img.height
+            img_ratio = watermarked_img.width / watermarked_img.height
             canvas_ratio = canvas_w / canvas_h
 
             if img_ratio > canvas_ratio:
@@ -1315,10 +1325,10 @@ class MainWindow:
                 target_h = canvas_h - 20
                 target_w = int(target_h * img_ratio)
 
-            img = img.copy()
-            img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+            preview_img = watermarked_img.copy()
+            preview_img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
 
-            self._preview_img_tk = ImageTk.PhotoImage(img)
+            self._preview_img_tk = ImageTk.PhotoImage(preview_img)
             self.preview_canvas.delete('all')
             self.preview_canvas.create_image(
                 canvas_w//2, canvas_h//2,
