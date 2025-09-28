@@ -69,25 +69,43 @@ class DragDropFrame(ttk.Frame):
         
     def _on_drop(self, event):
         """文件拖拽放下事件"""
+        print(f"DEBUG: 拖拽事件触发，数据: {event.data}")
+        
         if not self.on_drop_callback:
+            print("DEBUG: 没有设置回调函数")
             return
             
         # 解析拖拽的文件路径
         files = self._parse_drop_files(event.data)
+        print(f"DEBUG: 解析后的文件列表: {files}")
+        
         if files:
             # 过滤出图片文件和目录
             valid_paths = []
             for file_path in files:
-                if os.path.isfile(file_path) or os.path.isdir(file_path):
+                exists = os.path.exists(file_path)
+                is_file = os.path.isfile(file_path)
+                is_dir = os.path.isdir(file_path)
+                print(f"DEBUG: 检查路径 {file_path} - 存在:{exists}, 文件:{is_file}, 目录:{is_dir}")
+                
+                if is_file or is_dir:
                     valid_paths.append(file_path)
             
+            print(f"DEBUG: 有效路径列表: {valid_paths}")
+            
             if valid_paths:
+                print("DEBUG: 调用回调函数")
                 self.on_drop_callback(valid_paths)
                 self.update_text("文件已拖拽导入！")
                 # 2秒后恢复原始文本
                 self.after(2000, lambda: self.update_text(
                     "拖拽图片文件到此处\\n或点击下方按钮选择文件"
                 ))
+            else:
+                print("DEBUG: 没有有效路径")
+                self.update_text("没有找到有效的文件或目录")
+        else:
+            print("DEBUG: 文件解析失败")
         
     def _parse_drop_files(self, data):
         """解析拖拽数据中的文件路径"""
