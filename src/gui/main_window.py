@@ -182,47 +182,40 @@ class MainWindow:
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # 布局滚动组件 - 调整padding避免遮挡
-        canvas.pack(side="left", fill="both", expand=True, padx=(0, 0))
-        scrollbar.pack(side="right", fill="y", padx=(5, 0))
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
         
-        # 绑定鼠标滚轮事件到多个组件
+        # 绑定鼠标滚轮事件
         def _on_mousewheel(event):
             # 跨平台鼠标滚轮处理
-            if event.delta:
+            if hasattr(event, 'delta') and event.delta:
                 # Windows和macOS
                 delta = int(-1 * (event.delta / 120))
             else:
                 # Linux
                 delta = -1 if event.num == 4 else 1
             canvas.yview_scroll(delta, "units")
-            return "break"  # 阻止事件传播
-        
-        def _on_mousewheel_linux_up(event):
-            canvas.yview_scroll(-1, "units")
-            return "break"
-            
-        def _on_mousewheel_linux_down(event):
-            canvas.yview_scroll(1, "units")
             return "break"
         
-        def _bind_mousewheel_recursive(widget):
-            """递归绑定鼠标滚轮事件到所有子组件"""
+        def _bind_mousewheel(widget):
+            """绑定鼠标滚轮事件到指定组件"""
             # Windows和macOS
             widget.bind("<MouseWheel>", _on_mousewheel)
             # Linux
-            widget.bind("<Button-4>", _on_mousewheel_linux_up)
-            widget.bind("<Button-5>", _on_mousewheel_linux_down)
-            
-            for child in widget.winfo_children():
-                _bind_mousewheel_recursive(child)
+            widget.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+            widget.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
         
-        # 绑定到主要组件
-        _bind_mousewheel_recursive(settings_frame)
-        _bind_mousewheel_recursive(canvas)
+        # 绑定鼠标滚轮到canvas和settings_frame
+        _bind_mousewheel(canvas)
+        _bind_mousewheel(settings_frame)
         
-        # 延迟绑定子组件（等待组件创建完成）
+        # 延迟绑定到scrollable_frame及其子组件
         def _bind_children():
-            _bind_mousewheel_recursive(scrollable_frame)
+            def _bind_recursive(widget):
+                _bind_mousewheel(widget)
+                for child in widget.winfo_children():
+                    _bind_recursive(child)
+            _bind_recursive(scrollable_frame)
         
         settings_frame.after(100, _bind_children)
         
