@@ -337,29 +337,28 @@ class MainWindow:
         percentage_entry.pack(side='left', padx=(5, 2))
         ttk.Label(percentage_frame, text="%").pack(side='left')
         
-        # 按宽度缩放
-        width_frame = ttk.Frame(self.resize_options_frame)
-        width_frame.pack(fill='x', pady=2)
+        # 按尺寸缩放
+        size_frame = ttk.Frame(self.resize_options_frame)
+        size_frame.pack(fill='x', pady=2)
         ttk.Radiobutton(
-            width_frame, text="按宽度:", 
-            variable=self.resize_type_var, value="width"
+            size_frame, text="按尺寸:", 
+            variable=self.resize_type_var, value="custom"
         ).pack(side='left')
-        self.width_var = tk.IntVar(value=1920)
-        width_entry = ttk.Entry(width_frame, textvariable=self.width_var, width=8)
-        width_entry.pack(side='left', padx=(5, 2))
-        ttk.Label(width_frame, text="px").pack(side='left')
         
-        # 按高度缩放
-        height_frame = ttk.Frame(self.resize_options_frame)
-        height_frame.pack(fill='x', pady=2)
-        ttk.Radiobutton(
-            height_frame, text="按高度:", 
-            variable=self.resize_type_var, value="height"
-        ).pack(side='left')
+        # 宽度输入
+        ttk.Label(size_frame, text="宽:").pack(side='left', padx=(10, 2))
+        self.width_var = tk.IntVar(value=1920)
+        width_entry = ttk.Entry(size_frame, textvariable=self.width_var, width=6)
+        width_entry.pack(side='left', padx=(0, 2))
+        ttk.Label(size_frame, text="px").pack(side='left', padx=(0, 10))
+        
+        # 高度输入
+        ttk.Label(size_frame, text="高:").pack(side='left', padx=(0, 2))
         self.height_var = tk.IntVar(value=1080)
-        height_entry = ttk.Entry(height_frame, textvariable=self.height_var, width=8)
-        height_entry.pack(side='left', padx=(5, 2))
-        ttk.Label(height_frame, text="px").pack(side='left')
+        height_entry = ttk.Entry(size_frame, textvariable=self.height_var, width=6)
+        height_entry.pack(side='left', padx=(0, 2))
+        ttk.Label(size_frame, text="px").pack(side='left')
+        
         
         # 初始化显示状态
         self._on_resize_enable_change()
@@ -658,7 +657,7 @@ class MainWindow:
             'width': self.width_var.get(),
             'height': self.height_var.get(),
             'percentage': self.percentage_var.get(),
-            'keep_ratio': True
+            'keep_ratio': False
         }
         
         # 收集配置

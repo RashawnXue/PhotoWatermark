@@ -139,11 +139,6 @@ class FileManager:
         elif resize_type == 'custom':
             new_width = resize_config.get('width', original_size[0])
             new_height = resize_config.get('height', original_size[1])
-            if resize_config.get('keep_ratio', True):
-                # 保持宽高比
-                ratio = min(new_width / original_size[0], new_height / original_size[1])
-                new_width = int(original_size[0] * ratio)
-                new_height = int(original_size[1] * ratio)
             new_size = (new_width, new_height)
         else:
             return image

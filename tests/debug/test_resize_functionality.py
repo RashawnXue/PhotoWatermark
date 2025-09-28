@@ -53,26 +53,28 @@ def test_resize_functionality():
                 'expected_height': original_size[1] // 2
             },
             {
-                'name': '按宽度调整到800px',
+                'name': '按尺寸调整到800x600',
                 'resize': {
                     'enabled': True,
-                    'type': 'width',
+                    'type': 'custom',
                     'width': 800,
-                    'keep_ratio': True
+                    'height': 600,
+                    'keep_ratio': False
                 },
                 'expected_width': 800,
-                'expected_height': int(original_size[1] * 800 / original_size[0])
+                'expected_height': 600
             },
             {
-                'name': '按高度调整到600px',
+                'name': '按尺寸调整到1024x768',
                 'resize': {
                     'enabled': True,
-                    'type': 'height',
-                    'height': 600,
-                    'keep_ratio': True
+                    'type': 'custom',
+                    'width': 1024,
+                    'height': 768,
+                    'keep_ratio': False
                 },
-                'expected_width': int(original_size[0] * 600 / original_size[1]),
-                'expected_height': 600
+                'expected_width': 1024,
+                'expected_height': 768
             },
             {
                 'name': '不调整尺寸',
@@ -144,10 +146,9 @@ def test_gui_resize_controls():
         print("\n测试步骤:")
         print("1. 在左侧设置面板找到'图片尺寸'部分")
         print("2. 勾选'启用图片尺寸调整'复选框")
-        print("3. 测试三种调整模式:")
+        print("3. 测试两种调整模式:")
         print("   - 按比例: 设置百分比（如50%）")
-        print("   - 按宽度: 设置像素值（如800px）")
-        print("   - 按高度: 设置像素值（如600px）")
+        print("   - 按尺寸: 设置宽度和高度像素值（如800x600px）")
         print("4. 取消勾选复选框，确认选项被禁用")
         print("5. 导入图片并测试导出功能")
         
