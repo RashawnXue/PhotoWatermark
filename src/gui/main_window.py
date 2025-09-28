@@ -152,38 +152,59 @@ class MainWindow:
         
     def _create_main_area(self):
         """创建主要区域"""
-        # 使用Frame代替PanedWindow实现固定左侧宽度的布局
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill='both', expand=True, padx=5, pady=5)
+        # 创建水平分割面板
+        main_paned = ttk.PanedWindow(self.root, orient='horizontal')
+        main_paned.pack(fill='both', expand=True, padx=5, pady=5)
         
-        # 左侧设置面板 - 固定宽度
-        self._create_settings_panel(main_frame)
+        # 左侧设置面板
+        self._create_settings_panel(main_paned)
         
-        # 右侧图片区域 - 自适应剩余空间
-        self._create_image_area(main_frame)
+        # 右侧图片区域
+        self._create_image_area(main_paned)
+        
+        # 设置初始分割位置 - 增加左侧面板宽度
+        self.root.after(100, lambda: main_paned.sashpos(0, 400))
         
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
-        settings_frame = ttk.Frame(parent, width=350)
-        settings_frame.pack_propagate(False)
-        settings_frame.pack(side='left', fill='y')  # 固定宽度，填充高度
+        settings_frame = ttk.Frame(parent)
+        parent.add(settings_frame, weight=0)
+        
+        # 设置最小宽度
+        settings_frame.config(width=400)
         
         # 创建滚动框架
-        canvas = tk.Canvas(settings_frame, highlightthickness=0)
+        canvas = tk.Canvas(settings_frame, highlightthickness=0, bg='white')
         scrollbar = ttk.Scrollbar(settings_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # 配置滚动区域
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # 确保内容框架宽度与画布一致
+            canvas_width = canvas.winfo_width()
+            if canvas_width > 1:  # 确保画布已经渲染
+                canvas.itemconfig(window_id, width=canvas_width)
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        scrollable_frame.bind("<Configure>", configure_scroll_region)
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # 布局滚动组件 - 为滚动条预留空间
+        # 画布大小改变时调整内容宽度
+        canvas.bind('<Configure>', configure_scroll_region)
+        
+        # 布局滚动组件
+        canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        # 绑定鼠标滚轮事件
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        # 为画布和滚动框架绑定滚轮事件
+        canvas.bind("<MouseWheel>", on_mousewheel)  # Windows
+        canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # Linux
+        canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))   # Linux
         
         
         # 设置面板标题
@@ -344,7 +365,7 @@ class MainWindow:
     def _create_image_area(self, parent):
         """创建右侧图片区域"""
         image_frame = ttk.Frame(parent)
-        image_frame.pack(side='right', fill='both', expand=True)  # 填充剩余空间
+        parent.add(image_frame, weight=1)
         
         # 创建笔记本控件（标签页）
         notebook = ttk.Notebook(image_frame)
