@@ -69,32 +69,20 @@ class DragDropFrame(ttk.Frame):
         
     def _on_drop(self, event):
         """文件拖拽放下事件"""
-        print(f"DEBUG: 拖拽事件触发，数据: {event.data}")
-        
         if not self.on_drop_callback:
-            print("DEBUG: 没有设置回调函数")
             return
             
         # 解析拖拽的文件路径
         files = self._parse_drop_files(event.data)
-        print(f"DEBUG: 解析后的文件列表: {files}")
         
         if files:
-            # 过滤出图片文件和目录
+            # 过滤出存在的文件和目录
             valid_paths = []
             for file_path in files:
-                exists = os.path.exists(file_path)
-                is_file = os.path.isfile(file_path)
-                is_dir = os.path.isdir(file_path)
-                print(f"DEBUG: 检查路径 {file_path} - 存在:{exists}, 文件:{is_file}, 目录:{is_dir}")
-                
-                if is_file or is_dir:
+                if os.path.exists(file_path):
                     valid_paths.append(file_path)
             
-            print(f"DEBUG: 有效路径列表: {valid_paths}")
-            
             if valid_paths:
-                print("DEBUG: 调用回调函数")
                 self.on_drop_callback(valid_paths)
                 self.update_text("文件已拖拽导入！")
                 # 2秒后恢复原始文本
@@ -102,10 +90,10 @@ class DragDropFrame(ttk.Frame):
                     "拖拽图片文件到此处\\n或点击下方按钮选择文件"
                 ))
             else:
-                print("DEBUG: 没有有效路径")
                 self.update_text("没有找到有效的文件或目录")
-        else:
-            print("DEBUG: 文件解析失败")
+                self.after(2000, lambda: self.update_text(
+                    "拖拽图片文件到此处\\n或点击下方按钮选择文件"
+                ))
         
     def _parse_drop_files(self, data):
         """解析拖拽数据中的文件路径"""
@@ -113,18 +101,38 @@ class DragDropFrame(ttk.Frame):
         
         # tkinterdnd2 返回的数据格式可能是字符串或列表
         if isinstance(data, str):
-            # 处理包含空格的文件路径（用大括号包围）
             import re
-            # 匹配 {path with spaces} 或 path_without_spaces
-            pattern = r'\\{([^}]+)\\}|([^\\s\\{\\}]+)'
-            matches = re.findall(pattern, data)
-            for match in matches:
-                file_path = match[0] if match[0] else match[1]
-                if file_path:
-                    files.append(file_path)
-        elif isinstance(data, (list, tuple)):
-            files = list(data)
             
+            # 处理tkinterdnd2的标准格式
+            # 通常格式为: {/path/with spaces/file.jpg} /path/without/spaces/file.jpg
+            if '{' in data and '}' in data:
+                # 使用正则表达式匹配大括号包围的路径和普通路径
+                pattern = r'\\{([^}]+)\\}|([^\\s{}]+)'
+                matches = re.findall(pattern, data)
+                for match in matches:
+                    file_path = match[0] if match[0] else match[1]
+                    if file_path.strip():
+                        files.append(file_path.strip())
+            else:
+                # 简单的空格分割（适用于没有空格的路径）
+                potential_files = data.split()
+                for file_path in potential_files:
+                    if file_path.strip():
+                        files.append(file_path.strip())
+                        
+            # 如果上面的方法都没有找到文件，可能是单个路径
+            if not files and data.strip():
+                files = [data.strip()]
+                
+        elif isinstance(data, (list, tuple)):
+            # 直接是文件路径列表
+            files = [str(f).strip() for f in data if str(f).strip()]
+        else:
+            # 其他类型，尝试转换为字符串
+            file_str = str(data).strip()
+            if file_str:
+                files = [file_str]
+                
         return files
         
     def _on_drag_enter(self, event):

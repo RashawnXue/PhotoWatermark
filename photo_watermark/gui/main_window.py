@@ -334,32 +334,19 @@ class MainWindow:
                 
     def _add_files(self, file_paths: List[str]):
         """添加文件到列表"""
-        print(f"DEBUG: 收到文件路径: {file_paths}")  # 调试信息
-        
         # 展开目录中的文件
         all_files = []
         for path in file_paths:
             if os.path.isdir(path):
-                print(f"DEBUG: 处理目录: {path}")
                 # 从目录获取图片文件
-                dir_files = self.file_manager.get_images_from_directory(path, recursive=False)
+                recursive = self.recursive_var.get() if hasattr(self, 'recursive_var') else False
+                dir_files = self.file_manager.get_images_from_directory(path, recursive)
                 all_files.extend(dir_files)
-                print(f"DEBUG: 目录中找到 {len(dir_files)} 个图片文件")
             elif os.path.isfile(path):
-                print(f"DEBUG: 处理文件: {path}")
                 all_files.append(path)
         
-        print(f"DEBUG: 展开后的文件列表: {all_files}")
-        
         # 过滤支持的图片文件
-        valid_files = []
-        for f in all_files:
-            is_supported = self.file_manager.is_supported_image(f)
-            print(f"DEBUG: 文件 {f} 支持状态: {is_supported}")
-            if is_supported:
-                valid_files.append(f)
-        
-        print(f"DEBUG: 有效图片文件: {valid_files}")
+        valid_files = [f for f in all_files if self.file_manager.is_supported_image(f)]
         
         if valid_files:
             # 添加到缩略图列表
@@ -376,13 +363,15 @@ class MainWindow:
             # 启用导出按钮
             self._update_export_button()
             
+        # 显示跳过的文件信息
         if len(valid_files) < len(all_files):
             skipped = len(all_files) - len(valid_files)
             if skipped > 0:
                 messagebox.showwarning("警告", f"跳过了 {skipped} 个不支持的文件")
         
+        # 如果没有找到任何有效文件，显示提示
         if not valid_files and file_paths:
-            messagebox.showinfo("提示", "没有找到支持的图片文件")
+            messagebox.showinfo("提示", "没有找到支持的图片文件\\n支持的格式: JPEG, PNG, BMP, TIFF")
             
     def _on_files_dropped(self, file_paths: List[str]):
         """文件拖拽事件处理"""
