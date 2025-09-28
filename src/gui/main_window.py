@@ -305,6 +305,65 @@ class MainWindow:
         self.suffix_var = tk.StringVar(value="_watermarked")
         ttk.Entry(naming_frame3, textvariable=self.suffix_var, width=12).pack(side='left', padx=(5, 0))
         
+        # 图片尺寸调整
+        ttk.Label(export_frame, text="图片尺寸:").pack(anchor='w', padx=10, pady=(5, 0))
+        
+        # 启用尺寸调整复选框
+        self.resize_enabled_var = tk.BooleanVar(value=False)
+        resize_check = ttk.Checkbutton(
+            export_frame,
+            text="启用图片尺寸调整",
+            variable=self.resize_enabled_var,
+            command=self._on_resize_enable_change
+        )
+        resize_check.pack(anchor='w', padx=10, pady=(0, 5))
+        
+        # 尺寸调整选项框架
+        self.resize_options_frame = ttk.Frame(export_frame)
+        self.resize_options_frame.pack(fill='x', padx=20, pady=(0, 5))
+        
+        # 调整类型
+        self.resize_type_var = tk.StringVar(value="percentage")
+        
+        # 按百分比缩放
+        percentage_frame = ttk.Frame(self.resize_options_frame)
+        percentage_frame.pack(fill='x', pady=2)
+        ttk.Radiobutton(
+            percentage_frame, text="按比例:", 
+            variable=self.resize_type_var, value="percentage"
+        ).pack(side='left')
+        self.percentage_var = tk.IntVar(value=100)
+        percentage_entry = ttk.Entry(percentage_frame, textvariable=self.percentage_var, width=8)
+        percentage_entry.pack(side='left', padx=(5, 2))
+        ttk.Label(percentage_frame, text="%").pack(side='left')
+        
+        # 按宽度缩放
+        width_frame = ttk.Frame(self.resize_options_frame)
+        width_frame.pack(fill='x', pady=2)
+        ttk.Radiobutton(
+            width_frame, text="按宽度:", 
+            variable=self.resize_type_var, value="width"
+        ).pack(side='left')
+        self.width_var = tk.IntVar(value=1920)
+        width_entry = ttk.Entry(width_frame, textvariable=self.width_var, width=8)
+        width_entry.pack(side='left', padx=(5, 2))
+        ttk.Label(width_frame, text="px").pack(side='left')
+        
+        # 按高度缩放
+        height_frame = ttk.Frame(self.resize_options_frame)
+        height_frame.pack(fill='x', pady=2)
+        ttk.Radiobutton(
+            height_frame, text="按高度:", 
+            variable=self.resize_type_var, value="height"
+        ).pack(side='left')
+        self.height_var = tk.IntVar(value=1080)
+        height_entry = ttk.Entry(height_frame, textvariable=self.height_var, width=8)
+        height_entry.pack(side='left', padx=(5, 2))
+        ttk.Label(height_frame, text="px").pack(side='left')
+        
+        # 初始化显示状态
+        self._on_resize_enable_change()
+        
         # 初始化格式相关显示
         self._on_format_change()
         
@@ -503,6 +562,36 @@ class MainWindow:
         if hasattr(self, 'quality_label'):
             self.quality_label.config(text=f"{int(float(value))}%")
             
+    def _on_resize_enable_change(self):
+        """尺寸调整启用状态改变事件"""
+        if hasattr(self, 'resize_options_frame'):
+            if self.resize_enabled_var.get():
+                # 启用尺寸调整选项
+                for child in self.resize_options_frame.winfo_children():
+                    self._enable_widget_recursive(child)
+            else:
+                # 禁用尺寸调整选项
+                for child in self.resize_options_frame.winfo_children():
+                    self._disable_widget_recursive(child)
+                    
+    def _enable_widget_recursive(self, widget):
+        """递归启用控件"""
+        try:
+            widget.config(state='normal')
+        except:
+            pass
+        for child in widget.winfo_children():
+            self._enable_widget_recursive(child)
+            
+    def _disable_widget_recursive(self, widget):
+        """递归禁用控件"""
+        try:
+            widget.config(state='disabled')
+        except:
+            pass
+        for child in widget.winfo_children():
+            self._disable_widget_recursive(child)
+            
     def _select_all(self):
         """全选"""
         self.thumbnail_list._select_all()
@@ -562,20 +651,23 @@ class MainWindow:
         elif naming_rule['type'] == 'suffix':
             naming_rule['value'] = self.suffix_var.get()
             
+        # 收集尺寸调整配置
+        resize_config = {
+            'enabled': self.resize_enabled_var.get(),
+            'type': self.resize_type_var.get(),
+            'width': self.width_var.get(),
+            'height': self.height_var.get(),
+            'percentage': self.percentage_var.get(),
+            'keep_ratio': True
+        }
+        
         # 收集配置
         config = {
             'output_dir': self.output_dir_var.get(),
             'naming_rule': naming_rule,
             'output_format': self.format_var.get(),
             'quality': self.quality_var.get(),
-            'resize': {
-                'enabled': False,  # 暂时不支持尺寸调整，可以后续添加
-                'type': 'none',
-                'width': 1920,
-                'height': 1080,
-                'percentage': 100,
-                'keep_ratio': True
-            }
+            'resize': resize_config
         }
         
         return config
