@@ -269,7 +269,11 @@ class MainWindow:
         notebook.add(list_frame, text="图片列表")
         
         # 创建缩略图列表
-        self.thumbnail_list = ThumbnailList(list_frame, self._on_selection_change)
+        self.thumbnail_list = ThumbnailList(
+            list_frame, 
+            self._on_selection_change,
+            self._on_list_change  # 添加列表变化回调
+        )
         self.thumbnail_list.pack(fill='both', expand=True)
         
         # 保存notebook引用
@@ -349,19 +353,14 @@ class MainWindow:
         valid_files = [f for f in all_files if self.file_manager.is_supported_image(f)]
         
         if valid_files:
-            # 添加到缩略图列表
+            # 添加到缩略图列表（会自动触发列表变化回调更新计数器）
             self.thumbnail_list.add_files(valid_files)
             
-            # 更新状态
-            total_files = len(self.thumbnail_list.get_all_files())
-            self.file_count_label.config(text=f"已导入: {total_files} 张图片")
+            # 更新状态信息
             self.status_label.config(text=f"成功导入 {len(valid_files)} 张图片")
             
             # 切换到图片列表标签页
             self.notebook.select(1)
-            
-            # 启用导出按钮
-            self._update_export_button()
             
         # 显示跳过的文件信息
         if len(valid_files) < len(all_files):
@@ -385,6 +384,19 @@ class MainWindow:
         else:
             self.status_label.config(text="准备就绪")
             
+    def _on_list_change(self):
+        """列表变化事件处理"""
+        # 更新文件计数器
+        total_files = len(self.thumbnail_list.get_all_files())
+        self.file_count_label.config(text=f"已导入: {total_files} 张图片")
+        
+        # 更新导出按钮状态
+        self._update_export_button()
+        
+        # 如果列表为空，更新状态
+        if total_files == 0:
+            self.status_label.config(text="已清空列表")
+            
     def _select_all(self):
         """全选"""
         self.thumbnail_list._select_all()
@@ -393,10 +405,8 @@ class MainWindow:
         """清空列表"""
         result = messagebox.askyesno("确认", "确定要清空图片列表吗？")
         if result:
+            # 清空列表（会自动触发列表变化回调更新计数器和状态）
             self.thumbnail_list._clear_all()
-            self.file_count_label.config(text="已导入: 0 张图片")
-            self.status_label.config(text="已清空列表")
-            self._update_export_button()
             
     def _switch_view(self, view_type: str):
         """切换视图"""

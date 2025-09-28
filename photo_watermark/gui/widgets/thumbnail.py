@@ -53,9 +53,11 @@ class ThumbnailItem:
 class ThumbnailList(ttk.Frame):
     """缩略图列表组件"""
     
-    def __init__(self, parent, on_selection_change: Optional[Callable[[List[str]], None]] = None):
+    def __init__(self, parent, on_selection_change: Optional[Callable[[List[str]], None]] = None,
+                 on_list_change: Optional[Callable[[], None]] = None):
         super().__init__(parent)
         self.on_selection_change = on_selection_change
+        self.on_list_change = on_list_change  # 新增：列表变化回调
         self.items: List[ThumbnailItem] = []
         self.selected_items: List[ThumbnailItem] = []
         
@@ -128,16 +130,21 @@ class ThumbnailList(ttk.Frame):
         self.selected_items.clear()
         self._refresh_display()
         self._notify_selection_change()
+        self._notify_list_change()  # 通知列表变化
         
     def add_files(self, file_paths: List[str]):
         """添加文件到列表"""
+        added_count = 0
         for file_path in file_paths:
             if self._is_image_file(file_path) and not self._file_exists(file_path):
                 item = ThumbnailItem(file_path)
                 item.load_thumbnail()
                 self.items.append(item)
+                added_count += 1
         
-        self._refresh_display()
+        if added_count > 0:
+            self._refresh_display()
+            self._notify_list_change()  # 通知列表变化
         
     def _is_image_file(self, file_path: str) -> bool:
         """检查是否为支持的图片文件"""
@@ -272,6 +279,11 @@ class ThumbnailList(ttk.Frame):
         if self.on_selection_change:
             selected_paths = [item.file_path for item in self.selected_items]
             self.on_selection_change(selected_paths)
+            
+    def _notify_list_change(self):
+        """通知列表变化"""
+        if self.on_list_change:
+            self.on_list_change()
             
     def get_selected_files(self) -> List[str]:
         """获取选中的文件路径"""
