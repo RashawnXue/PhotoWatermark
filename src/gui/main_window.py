@@ -49,7 +49,7 @@ class MainWindow:
         
         # 绑定事件
         self._bind_events()
-        
+
     def _setup_window(self):
         """设置主窗口"""
         self.root.title("PhotoWatermark - 图片水印工具")
@@ -62,7 +62,7 @@ class MainWindow:
             pass
         except:
             pass
-            
+
     def _create_widgets(self):
         """创建界面组件"""
         # 创建菜单栏
@@ -72,113 +72,38 @@ class MainWindow:
         self._create_toolbar()
         
         # 创建主要区域
+        self._bind_events()
         self._create_main_area()
-        
-        # 创建状态栏
         self._create_status_bar()
-        
-    def _create_menu(self):
-        """创建菜单栏"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
-        
-        # 文件菜单
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="文件", menu=file_menu)
-        file_menu.add_command(label="导入文件...", command=self._import_files, accelerator="Ctrl+O")
-        file_menu.add_command(label="导入文件夹...", command=self._import_folder, accelerator="Ctrl+Shift+O")
-        file_menu.add_separator()
-        file_menu.add_command(label="导出...", command=self._export_images, accelerator="Ctrl+E")
-        file_menu.add_separator()
-        file_menu.add_command(label="退出", command=self.root.quit, accelerator="Ctrl+Q")
-        
-        # 编辑菜单
-        edit_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="编辑", menu=edit_menu)
-        edit_menu.add_command(label="全选", command=self._select_all, accelerator="Ctrl+A")
-        edit_menu.add_command(label="清空列表", command=self._clear_list, accelerator="Ctrl+L")
-        
-        # 视图菜单
-        view_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="视图", menu=view_menu)
-        view_menu.add_command(label="缩略图视图", command=lambda: self._switch_view("thumbnail"))
-        view_menu.add_command(label="列表视图", command=lambda: self._switch_view("list"))
-        
-        # 帮助菜单
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="帮助", menu=help_menu)
-        help_menu.add_command(label="关于", command=self._show_about)
-        
-    def _create_toolbar(self):
-        """创建工具栏"""
-        toolbar = ttk.Frame(self.root)
-        toolbar.pack(fill='x', padx=5, pady=5)
-        
-        # 导入按钮
-        ttk.Button(
-            toolbar, text="导入文件", 
-            command=self._import_files
-        ).pack(side='left', padx=(0, 5))
-        
-        ttk.Button(
-            toolbar, text="导入文件夹", 
-            command=self._import_folder
-        ).pack(side='left', padx=(0, 5))
-        
-        # 分隔符
-        ttk.Separator(toolbar, orient='vertical').pack(side='left', fill='y', padx=10)
-        
-        # 导出按钮
-        ttk.Button(
-            toolbar, text="导出图片", 
-            command=self._export_images,
-            state='disabled'
-        ).pack(side='left', padx=(0, 5))
-        
-        # 分隔符
-        ttk.Separator(toolbar, orient='vertical').pack(side='left', fill='y', padx=10)
-        
-        # 设置按钮
-        ttk.Button(
-            toolbar, text="水印设置", 
-            command=self._show_watermark_settings
-        ).pack(side='left', padx=(0, 5))
-        
-        # 右侧信息
-        info_frame = ttk.Frame(toolbar)
-        info_frame.pack(side='right')
-        
-        self.file_count_label = ttk.Label(info_frame, text="已导入: 0 张图片")
-        self.file_count_label.pack(side='right')
         
     def _create_main_area(self):
         """创建主要区域"""
         # 创建水平分割面板
         main_paned = ttk.PanedWindow(self.root, orient='horizontal')
         main_paned.pack(fill='both', expand=True, padx=5, pady=5)
-        
+
         # 左侧设置面板
         self._create_settings_panel(main_paned)
-        
+
         # 右侧图片区域
         self._create_image_area(main_paned)
-        
+
         # 设置初始分割位置 - 增加左侧面板宽度
         self.root.after(100, lambda: main_paned.sashpos(0, 400))
-        
+
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
         settings_frame = ttk.Frame(parent)
         parent.add(settings_frame, weight=0)
-        
+
         # 设置最小宽度
         settings_frame.config(width=400)
-        
+
         # 创建滚动框架
         canvas = tk.Canvas(settings_frame, highlightthickness=0, bg='white')
         scrollbar = ttk.Scrollbar(settings_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
-        
+
         # 配置滚动区域
         def configure_scroll_region(event=None):
             canvas.configure(scrollregion=canvas.bbox("all"))
@@ -186,87 +111,86 @@ class MainWindow:
             canvas_width = canvas.winfo_width()
             if canvas_width > 1:  # 确保画布已经渲染
                 canvas.itemconfig(window_id, width=canvas_width)
-        
+
         scrollable_frame.bind("<Configure>", configure_scroll_region)
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-        
+
         # 画布大小改变时调整内容宽度
         canvas.bind('<Configure>', configure_scroll_region)
-        
+
         # 布局滚动组件
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        
+
         # 绑定鼠标滚轮事件
         def on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        
+
         # 为画布和滚动框架绑定滚轮事件
         canvas.bind("<MouseWheel>", on_mousewheel)  # Windows
         canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # Linux
         canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))   # Linux
-        
-        
+
         # 设置面板标题
         ttk.Label(
-            scrollable_frame, 
-            text="设置面板", 
+            scrollable_frame,
+            text="设置面板",
             font=('Arial', 12, 'bold')
         ).pack(pady=(10, 20))
-        
+
         # 导入设置
         import_frame = ttk.LabelFrame(scrollable_frame, text="导入设置")
         import_frame.pack(fill='x', padx=10, pady=(0, 10))
-        
+
         self.recursive_var = tk.BooleanVar()
         ttk.Checkbutton(
-            import_frame, 
-            text="递归导入子文件夹", 
+            import_frame,
+            text="递归导入子文件夹",
             variable=self.recursive_var
         ).pack(anchor='w', padx=10, pady=5)
-        
+
         # 水印设置
         self._create_watermark_settings(scrollable_frame)
-        
+
         # 导出设置
         export_frame = ttk.LabelFrame(scrollable_frame, text="导出设置")
         export_frame.pack(fill='x', padx=10, pady=(0, 10))
-        
+
         # 输出目录
         ttk.Label(export_frame, text="输出目录:").pack(anchor='w', padx=10, pady=(5, 0))
         dir_frame = ttk.Frame(export_frame)
         dir_frame.pack(fill='x', padx=10, pady=(0, 5))
-        
+
         self.output_dir_var = tk.StringVar(value=os.path.expanduser("~/Desktop"))
         dir_entry = ttk.Entry(dir_frame, textvariable=self.output_dir_var)
         dir_entry.pack(side='left', fill='x', expand=True)
-        
+
         ttk.Button(
-            dir_frame, 
-            text="浏览", 
+            dir_frame,
+            text="浏览",
             command=self._browse_output_dir,
             width=6
         ).pack(side='right', padx=(5, 0))
-        
+
         # 输出格式
         ttk.Label(export_frame, text="输出格式:").pack(anchor='w', padx=10, pady=(5, 0))
         format_frame = ttk.Frame(export_frame)
         format_frame.pack(fill='x', padx=10, pady=(0, 5))
-        
+
         self.format_var = tk.StringVar(value="JPEG")
         ttk.Radiobutton(format_frame, text="JPEG", variable=self.format_var, value="JPEG", command=self._on_format_change).pack(side='left')
         ttk.Radiobutton(format_frame, text="PNG", variable=self.format_var, value="PNG", command=self._on_format_change).pack(side='left', padx=(10, 0))
-        
+
         # JPEG质量设置
         self.quality_frame = ttk.Frame(export_frame)
         self.quality_frame.pack(fill='x', padx=10, pady=(0, 5))
-        
+
         self.quality_label_title = ttk.Label(self.quality_frame, text="JPEG质量:")
         self.quality_label_title.pack(anchor='w')
         quality_scale_frame = ttk.Frame(self.quality_frame)
         quality_scale_frame.pack(fill='x', pady=(0, 5))
-        
+
         self.quality_var = tk.IntVar(value=95)
         self.quality_scale = ttk.Scale(
             quality_scale_frame,
@@ -275,36 +199,36 @@ class MainWindow:
             orient='horizontal'
         )
         self.quality_scale.pack(side='left', fill='x', expand=True)
-        
+
         self.quality_label = ttk.Label(quality_scale_frame, text="95%")
         self.quality_label.pack(side='right', padx=(5, 0))
-        
+
         # 绑定质量滑块变化事件
         self.quality_scale.configure(command=self._on_quality_change)
-        
+
         # 文件命名
         ttk.Label(export_frame, text="文件命名:").pack(anchor='w', padx=10, pady=(5, 0))
         self.naming_var = tk.StringVar(value="original")
-        
+
         naming_frame1 = ttk.Frame(export_frame)
         naming_frame1.pack(fill='x', padx=10, pady=(0, 2))
         ttk.Radiobutton(naming_frame1, text="保留原文件名", variable=self.naming_var, value="original").pack(anchor='w')
-        
+
         naming_frame2 = ttk.Frame(export_frame)
         naming_frame2.pack(fill='x', padx=10, pady=(0, 2))
         ttk.Radiobutton(naming_frame2, text="添加前缀:", variable=self.naming_var, value="prefix").pack(side='left')
         self.prefix_var = tk.StringVar(value="wm_")
         ttk.Entry(naming_frame2, textvariable=self.prefix_var, width=10).pack(side='left', padx=(5, 0))
-        
+
         naming_frame3 = ttk.Frame(export_frame)
         naming_frame3.pack(fill='x', padx=10, pady=(0, 5))
         ttk.Radiobutton(naming_frame3, text="添加后缀:", variable=self.naming_var, value="suffix").pack(side='left')
         self.suffix_var = tk.StringVar(value="_watermarked")
         ttk.Entry(naming_frame3, textvariable=self.suffix_var, width=12).pack(side='left', padx=(5, 0))
-        
+
         # 图片尺寸调整
         ttk.Label(export_frame, text="图片尺寸:").pack(anchor='w', padx=10, pady=(5, 0))
-        
+
         # 启用尺寸调整复选框
         self.resize_enabled_var = tk.BooleanVar(value=False)
         resize_check = ttk.Checkbutton(
@@ -314,14 +238,14 @@ class MainWindow:
             command=self._on_resize_enable_change
         )
         resize_check.pack(anchor='w', padx=10, pady=(0, 5))
-        
+
         # 尺寸调整选项框架
         self.resize_options_frame = ttk.Frame(export_frame)
         self.resize_options_frame.pack(fill='x', padx=20, pady=(0, 5))
-        
+
         # 调整类型
         self.resize_type_var = tk.StringVar(value="percentage")
-        
+
         # 按百分比缩放
         percentage_frame = ttk.Frame(self.resize_options_frame)
         percentage_frame.pack(fill='x', pady=2)
@@ -333,7 +257,7 @@ class MainWindow:
         percentage_entry = ttk.Entry(percentage_frame, textvariable=self.percentage_var, width=8)
         percentage_entry.pack(side='left', padx=(5, 2))
         ttk.Label(percentage_frame, text="%").pack(side='left')
-        
+
         # 按尺寸缩放
         size_frame = ttk.Frame(self.resize_options_frame)
         size_frame.pack(fill='x', pady=2)
@@ -355,36 +279,20 @@ class MainWindow:
         height_entry = ttk.Entry(size_frame, textvariable=self.height_var, width=6)
         height_entry.pack(side='left', padx=(0, 2))
         ttk.Label(size_frame, text="px").pack(side='left')
-        
-        
+
         # 初始化显示状态
         self._on_resize_enable_change()
-        
+
         # 初始化格式相关显示
         self._on_format_change()
-        
+
     def _create_image_area(self, parent):
         """创建右侧图片区域"""
         image_frame = ttk.Frame(parent)
         parent.add(image_frame, weight=1)
 
-        # 垂直分割：上为主预览，下为 notebook（导入/列表）
-        preview_paned = ttk.PanedWindow(image_frame, orient='vertical')
-        preview_paned.pack(fill='both', expand=True)
-
-        # 主预览区域（上）
-        self.preview_frame = ttk.Frame(preview_paned)
-        preview_paned.add(self.preview_frame, weight=3)
-
-        self.preview_canvas = tk.Canvas(self.preview_frame, bg='black', highlightthickness=1)
-        self.preview_canvas.pack(fill='both', expand=True, padx=8, pady=8)
-
-        # 下部 notebook 区域，放置导入和列表
-        bottom_frame = ttk.Frame(preview_paned)
-        preview_paned.add(bottom_frame, weight=2)
-
-        # 创建笔记本控件（标签页）放在下部
-        notebook = ttk.Notebook(bottom_frame)
+        # 创建笔记本控件（标签页）
+        notebook = ttk.Notebook(image_frame)
         notebook.pack(fill='both', expand=True)
 
         # 拖拽导入标签页
@@ -423,28 +331,103 @@ class MainWindow:
         )
         self.thumbnail_list.pack(fill='both', expand=True)
 
-        # 保存引用
+        # 保存notebook引用
         self.notebook = notebook
 
-        # 初始化预览内容
+        # 主预览区域（在右侧图片区域下方）
+        preview_frame = ttk.LabelFrame(image_frame, text="主预览")
+        preview_frame.pack(fill='both', expand=True, padx=5, pady=5)
+
+        self.preview_canvas = tk.Canvas(preview_frame, bg='black')
+        self.preview_canvas.pack(fill='both', expand=True)
+
+        # 初始化预览显示
         self._init_preview_area()
-        
+
     def _create_status_bar(self):
-        """创建状态栏"""
+        """创建并初始化底部状态栏"""
         status_frame = ttk.Frame(self.root)
-        status_frame.pack(fill='x', side='bottom')
-        
+        status_frame.pack(side='bottom', fill='x')
+
         self.status_label = ttk.Label(status_frame, text="准备就绪")
-        self.status_label.pack(side='left', padx=5, pady=2)
+        self.status_label.pack(side='left', padx=10, pady=4)
+
+    
+
+    def _create_menu(self):
+        """创建菜单栏"""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
         
-        # 进度条（隐藏）
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(
-            status_frame,
-            variable=self.progress_var,
-            length=200
-        )
-        # 默认不显示进度条
+        # 文件菜单
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="文件", menu=file_menu)
+        file_menu.add_command(label="导入文件...", command=self._import_files, accelerator="Ctrl+O")
+        file_menu.add_command(label="导入文件夹...", command=self._import_folder, accelerator="Ctrl+Shift+O")
+        file_menu.add_separator()
+        file_menu.add_command(label="导出...", command=self._export_images, accelerator="Ctrl+E")
+        file_menu.add_separator()
+        file_menu.add_command(label="退出", command=self.root.quit, accelerator="Ctrl+Q")
+        
+        # 编辑菜单
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="编辑", menu=edit_menu)
+        edit_menu.add_command(label="全选", command=self._select_all, accelerator="Ctrl+A")
+        edit_menu.add_command(label="清空列表", command=self._clear_list, accelerator="Ctrl+L")
+        
+        # 视图菜单
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="视图", menu=view_menu)
+        view_menu.add_command(label="缩略图视图", command=lambda: self._switch_view("thumbnail"))
+        view_menu.add_command(label="列表视图", command=lambda: self._switch_view("list"))
+        
+        # 帮助菜单
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="帮助", menu=help_menu)
+        help_menu.add_command(label="关于", command=self._show_about)
+        
+    def _create_toolbar(self):
+        """创建工具栏"""
+        toolbar = ttk.Frame(self.root)
+        toolbar.pack(fill='x', padx=5, pady=5)
+
+        # 导入按钮
+        ttk.Button(
+            toolbar, text="导入文件",
+            command=self._import_files
+        ).pack(side='left', padx=(0, 5))
+
+        ttk.Button(
+            toolbar, text="导入文件夹",
+            command=self._import_folder
+        ).pack(side='left', padx=(0, 5))
+
+        # 分隔符
+        ttk.Separator(toolbar, orient='vertical').pack(side='left', fill='y', padx=10)
+
+        # 导出按钮
+        ttk.Button(
+            toolbar, text="导出图片",
+            command=self._export_images,
+            state='disabled'
+        ).pack(side='left', padx=(0, 5))
+
+        # 分隔符
+        ttk.Separator(toolbar, orient='vertical').pack(side='left', fill='y', padx=10)
+
+        # 设置按钮
+        ttk.Button(
+            toolbar, text="水印设置",
+            command=self._show_watermark_settings
+        ).pack(side='left', padx=(0, 5))
+
+        # 右侧信息
+        info_frame = ttk.Frame(toolbar)
+        info_frame.pack(side='right')
+
+        self.file_count_label = ttk.Label(info_frame, text="已导入: 0 张图片")
+        self.file_count_label.pack(side='right')
+        
         
     def _bind_events(self):
         """绑定事件"""
@@ -660,29 +643,35 @@ class MainWindow:
     def _get_watermark_config(self):
         """从GUI获取水印配置"""
         from ..core.config import WatermarkConfig, WatermarkType, TextWatermarkConfig, ImageWatermarkConfig, Position, DateFormat, ScaleMode
-        
-        # 确定当前选中的水印类型
-        current_tab = self.watermark_notebook.index(self.watermark_notebook.select())
-        if current_tab == 0:
+
+        # 获取文本和图片水印内容
+        text_content = self.text_content_var.get() if hasattr(self, 'text_content_var') else ""
+        image_path = self.image_path_var.get() if hasattr(self, 'image_path_var') else ""
+
+        # 判断水印类型：无文本且无图片时自动用时间水印
+        if (not text_content.strip()) and (not image_path.strip()):
             watermark_type = WatermarkType.TIMESTAMP
-        elif current_tab == 1:
-            watermark_type = WatermarkType.TEXT
         else:
-            watermark_type = WatermarkType.IMAGE
-        
+            current_tab = self.watermark_notebook.index(self.watermark_notebook.select())
+            if current_tab == 1 and text_content.strip():
+                watermark_type = WatermarkType.TEXT
+            elif current_tab == 2 and image_path.strip():
+                watermark_type = WatermarkType.IMAGE
+            else:
+                watermark_type = WatermarkType.TIMESTAMP
+
         # 获取选中字体的路径
         selected_font_name = self.text_font_var.get() if hasattr(self, 'text_font_var') else ""
         selected_font_path = None
-        
         if hasattr(self, 'recommended_fonts'):
             for font_info in self.recommended_fonts:
                 if font_info['name'] == selected_font_name:
                     selected_font_path = font_info['path']
                     break
-        
+
         # 创建文本水印配置
         text_watermark = TextWatermarkConfig(
-            text=self.text_content_var.get() if hasattr(self, 'text_content_var') else "",
+            text=text_content,
             font_size=self.text_font_size_var.get() if hasattr(self, 'text_font_size_var') else 36,
             font_color=self.text_color_var.get() if hasattr(self, 'text_color_var') else "white",
             font_alpha=self.text_alpha_var.get() if hasattr(self, 'text_alpha_var') else 0.8,
@@ -696,13 +685,13 @@ class MainWindow:
             stroke_enabled=self.stroke_enabled_var.get() if hasattr(self, 'stroke_enabled_var') else False,
             stroke_width=self.stroke_width_var.get() if hasattr(self, 'stroke_width_var') else 1
         )
-        
+
         # 创建图片水印配置
         scale_mode_str = self.scale_mode_var.get() if hasattr(self, 'scale_mode_var') else "percentage"
         scale_mode = ScaleMode.PERCENTAGE if scale_mode_str == "percentage" else ScaleMode.PIXEL
-        
+
         image_watermark = ImageWatermarkConfig(
-            image_path=self.image_path_var.get() if hasattr(self, 'image_path_var') else "",
+            image_path=image_path,
             scale_mode=scale_mode,
             scale_percentage=self.scale_percentage_var.get() if hasattr(self, 'scale_percentage_var') else 20.0,
             scale_width=self.scale_width_var.get() if hasattr(self, 'scale_width_var') else 100,
@@ -710,11 +699,11 @@ class MainWindow:
             keep_aspect_ratio=self.keep_ratio_var.get() if hasattr(self, 'keep_ratio_var') else True,
             alpha=self.image_alpha_var.get() if hasattr(self, 'image_alpha_var') else 0.8
         )
-        
+
         # 解析位置
         position_str = self.position_var.get()
         position = Position(position_str)
-        
+
         # 创建主配置
         watermark_config = WatermarkConfig(
             watermark_type=watermark_type,
@@ -724,7 +713,7 @@ class MainWindow:
             text_watermark=text_watermark,
             image_watermark=image_watermark
         )
-        
+
         return watermark_config
 
     def _get_export_config(self) -> dict:
@@ -903,7 +892,8 @@ class MainWindow:
             state="readonly"
         )
         color_combo.pack(fill='x', padx=10, pady=(0, 5))
-        
+        color_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
+
         # 透明度
         ttk.Label(timestamp_frame, text="透明度:").pack(anchor='w', padx=10, pady=(5, 0))
         self.alpha_var = tk.DoubleVar(value=0.8)
@@ -911,54 +901,55 @@ class MainWindow:
             timestamp_frame,
             from_=0.1, to=1.0,
             variable=self.alpha_var,
-            orient='horizontal'
+            orient='horizontal',
+            command=lambda v: self._schedule_redraw()
         )
         alpha_scale.pack(fill='x', padx=10, pady=(0, 10))
+        self._schedule_redraw()
     
     def _create_text_watermark_tab(self):
         """创建文本水印选项卡"""
         text_frame = ttk.Frame(self.watermark_notebook)
         self.watermark_notebook.add(text_frame, text="文本水印")
-        
+
         # 文本内容
         ttk.Label(text_frame, text="水印文本:").pack(anchor='w', padx=10, pady=(10, 0))
         self.text_content_var = tk.StringVar(value="")
         text_entry = tk.Text(text_frame, height=3, wrap=tk.WORD)
         text_entry.pack(fill='x', padx=10, pady=(0, 5))
-        
-        # 绑定文本变化事件
-        def on_text_change():
+
+        # 绑定文本变化事件：将 Text 内容同步到 StringVar 并刷新预览
+        def on_text_change(event=None):
             content = text_entry.get("1.0", tk.END)
-            # 只移除末尾的一个换行符（tk.Text.get()会自动添加）
             if content.endswith('\n'):
                 content = content[:-1]
             self.text_content_var.set(content)
-        
-        text_entry.bind('<KeyRelease>', lambda e: on_text_change())
+            self._schedule_redraw()
+
+        text_entry.bind('<KeyRelease>', on_text_change)
         self.text_entry_widget = text_entry
-        
+
         # 字体设置
         font_frame = ttk.LabelFrame(text_frame, text="字体设置")
         font_frame.pack(fill='x', padx=10, pady=(5, 0))
-        
+
         # 字体选择
         font_select_frame = ttk.Frame(font_frame)
         font_select_frame.pack(fill='x', padx=10, pady=5)
         ttk.Label(font_select_frame, text="字体:").pack(side='left')
-        
+
         # 获取推荐字体列表
         self.recommended_fonts = font_manager.get_recommended_fonts()
         font_names = [font['name'] for font in self.recommended_fonts]
-        
+
         self.text_font_var = tk.StringVar()
         if font_names:
-            # 优先选择支持中文的字体
             chinese_fonts = [f for f in self.recommended_fonts if f.get('supports_chinese', False)]
             if chinese_fonts:
                 self.text_font_var.set(chinese_fonts[0]['name'])
             else:
                 self.text_font_var.set(font_names[0])
-        
+
         self.text_font_combo = ttk.Combobox(
             font_select_frame,
             textvariable=self.text_font_var,
@@ -968,11 +959,10 @@ class MainWindow:
         )
         self.text_font_combo.pack(side='right')
         self.text_font_combo.bind('<<ComboboxSelected>>', self._on_font_change)
-        
-        # 初始化字体样式可用性
+
         if font_names:
             self.root.after(100, lambda: self._on_font_change())
-        
+
         # 字体大小
         size_frame = ttk.Frame(font_frame)
         size_frame.pack(fill='x', padx=10, pady=5)
@@ -980,50 +970,52 @@ class MainWindow:
         self.text_font_size_var = tk.IntVar(value=36)
         size_entry = ttk.Entry(size_frame, textvariable=self.text_font_size_var, width=8)
         size_entry.pack(side='right')
-        
+        self.text_font_size_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         # 字体颜色
         color_frame = ttk.Frame(font_frame)
         color_frame.pack(fill='x', padx=10, pady=5)
         ttk.Label(color_frame, text="字体颜色:").pack(side='left')
         self.text_color_var = tk.StringVar(value="white")
         text_color_combo = ttk.Combobox(
-            color_frame, 
+            color_frame,
             textvariable=self.text_color_var,
             values=["white", "black", "red", "blue", "green", "yellow", "orange", "purple"],
             state="readonly",
             width=10
         )
         text_color_combo.pack(side='right')
-        
+        text_color_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
+
         # 字体样式
         style_frame = ttk.Frame(font_frame)
         style_frame.pack(fill='x', padx=10, pady=5)
         self.text_bold_var = tk.BooleanVar()
         self.text_italic_var = tk.BooleanVar()
-        
+
         self.bold_checkbox = ttk.Checkbutton(
-            style_frame, text="粗体", 
+            style_frame, text="粗体",
             variable=self.text_bold_var,
             command=self._on_font_style_change
         )
         self.bold_checkbox.pack(side='left')
-        
+
         self.italic_checkbox = ttk.Checkbutton(
-            style_frame, text="斜体", 
+            style_frame, text="斜体",
             variable=self.text_italic_var,
             command=self._on_font_style_change
         )
         self.italic_checkbox.pack(side='left', padx=(10, 0))
-        
+
         # 样式可用性提示
         self.style_info_label = ttk.Label(
-            style_frame, 
-            text="", 
+            style_frame,
+            text="",
             foreground="gray",
             font=('Arial', 8)
         )
         self.style_info_label.pack(side='right')
-        
+
         # 透明度
         alpha_frame = ttk.Frame(font_frame)
         alpha_frame.pack(fill='x', padx=10, pady=5)
@@ -1034,27 +1026,29 @@ class MainWindow:
             from_=0.1, to=1.0,
             variable=self.text_alpha_var,
             orient='horizontal',
-            length=150
+            length=150,
+            command=lambda v: self._schedule_redraw()
         )
         alpha_scale.pack(side='right')
-        
+        self.text_alpha_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         # 效果设置
         effects_frame = ttk.LabelFrame(text_frame, text="视觉效果")
         effects_frame.pack(fill='x', padx=10, pady=(5, 0))
-        
+
         # 阴影效果
         self.shadow_enabled_var = tk.BooleanVar()
         shadow_check = ttk.Checkbutton(
-            effects_frame, 
-            text="启用阴影", 
+            effects_frame,
+            text="启用阴影",
             variable=self.shadow_enabled_var,
             command=self._on_shadow_toggle
         )
         shadow_check.pack(anchor='w', padx=10, pady=5)
-        
+
         self.shadow_frame = ttk.Frame(effects_frame)
         self.shadow_frame.pack(fill='x', padx=20, pady=(0, 5))
-        
+
         # 阴影偏移
         offset_frame = ttk.Frame(self.shadow_frame)
         offset_frame.pack(fill='x', pady=2)
@@ -1065,27 +1059,28 @@ class MainWindow:
         ttk.Label(offset_frame, text="x").pack(side='left', padx=(0, 5))
         ttk.Entry(offset_frame, textvariable=self.shadow_offset_y_var, width=5).pack(side='left', padx=(0, 2))
         ttk.Label(offset_frame, text="y").pack(side='left')
-        
+
         # 描边效果
         self.stroke_enabled_var = tk.BooleanVar()
         stroke_check = ttk.Checkbutton(
-            effects_frame, 
-            text="启用描边", 
+            effects_frame,
+            text="启用描边",
             variable=self.stroke_enabled_var,
             command=self._on_stroke_toggle
         )
         stroke_check.pack(anchor='w', padx=10, pady=5)
-        
+
         self.stroke_frame = ttk.Frame(effects_frame)
         self.stroke_frame.pack(fill='x', padx=20, pady=(0, 10))
-        
+
         # 描边宽度
         stroke_width_frame = ttk.Frame(self.stroke_frame)
         stroke_width_frame.pack(fill='x', pady=2)
         ttk.Label(stroke_width_frame, text="描边宽度:").pack(side='left')
         self.stroke_width_var = tk.IntVar(value=1)
         ttk.Entry(stroke_width_frame, textvariable=self.stroke_width_var, width=5).pack(side='right')
-        
+        self.stroke_width_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         # 初始化效果控件状态
         self._on_shadow_toggle()
         self._on_stroke_toggle()
@@ -1094,46 +1089,50 @@ class MainWindow:
         """创建图片水印选项卡"""
         image_frame = ttk.Frame(self.watermark_notebook)
         self.watermark_notebook.add(image_frame, text="图片水印")
-        
+
         # 图片选择
         ttk.Label(image_frame, text="水印图片:").pack(anchor='w', padx=10, pady=(10, 0))
         file_frame = ttk.Frame(image_frame)
         file_frame.pack(fill='x', padx=10, pady=(0, 5))
-        
+
         self.image_path_var = tk.StringVar(value="")
         path_entry = ttk.Entry(file_frame, textvariable=self.image_path_var)
         path_entry.pack(side='left', fill='x', expand=True)
-        
+
         ttk.Button(
-            file_frame, 
-            text="浏览", 
+            file_frame,
+            text="浏览",
             command=self._browse_watermark_image,
             width=8
         ).pack(side='right', padx=(5, 0))
-        
+        self.image_path_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         # 缩放设置
         scale_frame = ttk.LabelFrame(image_frame, text="尺寸设置")
         scale_frame.pack(fill='x', padx=10, pady=(5, 0))
-        
+
         # 缩放模式
         self.scale_mode_var = tk.StringVar(value="percentage")
-        
+
         percentage_frame = ttk.Frame(scale_frame)
         percentage_frame.pack(fill='x', padx=10, pady=5)
         ttk.Radiobutton(
-            percentage_frame, text="按比例:", 
-            variable=self.scale_mode_var, value="percentage"
+            percentage_frame, text="按比例:",
+            variable=self.scale_mode_var, value="percentage",
+            command=lambda: self._schedule_redraw()
         ).pack(side='left')
         self.scale_percentage_var = tk.DoubleVar(value=20.0)
         percentage_entry = ttk.Entry(percentage_frame, textvariable=self.scale_percentage_var, width=8)
         percentage_entry.pack(side='left', padx=(5, 2))
         ttk.Label(percentage_frame, text="%").pack(side='left')
-        
+        self.scale_percentage_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         pixel_frame = ttk.Frame(scale_frame)
         pixel_frame.pack(fill='x', padx=10, pady=5)
         ttk.Radiobutton(
-            pixel_frame, text="按像素:", 
-            variable=self.scale_mode_var, value="pixel"
+            pixel_frame, text="按像素:",
+            variable=self.scale_mode_var, value="pixel",
+            command=lambda: self._schedule_redraw()
         ).pack(side='left')
         self.scale_width_var = tk.IntVar(value=100)
         self.scale_height_var = tk.IntVar(value=100)
@@ -1141,28 +1140,18 @@ class MainWindow:
         ttk.Label(pixel_frame, text="x").pack(side='left', padx=(0, 2))
         ttk.Entry(pixel_frame, textvariable=self.scale_height_var, width=6).pack(side='left', padx=(0, 2))
         ttk.Label(pixel_frame, text="px").pack(side='left')
-        
+
         # 保持宽高比
         self.keep_ratio_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
-            scale_frame, text="保持宽高比", 
+            scale_frame, text="保持宽高比",
             variable=self.keep_ratio_var
         ).pack(anchor='w', padx=10, pady=5)
+        self.scale_width_var.trace_add('write', lambda *args: self._schedule_redraw())
+        self.scale_height_var.trace_add('write', lambda *args: self._schedule_redraw())
+        self.keep_ratio_var.trace_add('write', lambda *args: self._schedule_redraw())
+
         
-        # 透明度
-        alpha_frame = ttk.Frame(scale_frame)
-        alpha_frame.pack(fill='x', padx=10, pady=5)
-        ttk.Label(alpha_frame, text="透明度:").pack(side='left')
-        self.image_alpha_var = tk.DoubleVar(value=0.8)
-        alpha_scale = ttk.Scale(
-            alpha_frame,
-            from_=0.1, to=1.0,
-            variable=self.image_alpha_var,
-            orient='horizontal',
-            length=150
-        )
-        alpha_scale.pack(side='right')
-    
     def _create_position_settings(self, parent):
         """创建通用位置设置"""
         position_frame = ttk.LabelFrame(parent, text="位置设置")
@@ -1179,6 +1168,8 @@ class MainWindow:
             state="readonly"
         )
         position_combo.pack(fill='x', padx=10, pady=(0, 10))
+        # 位置选择变化时刷新预览
+        position_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
     
     def _on_shadow_toggle(self):
         """阴影效果开关切换"""
@@ -1189,6 +1180,8 @@ class MainWindow:
             else:
                 for child in self.shadow_frame.winfo_children():
                     self._disable_widget_recursive(child)
+        # 切换阴影后刷新预览
+        self._redraw_preview()
     
     def _on_stroke_toggle(self):
         """描边效果开关切换"""
@@ -1199,6 +1192,8 @@ class MainWindow:
             else:
                 for child in self.stroke_frame.winfo_children():
                     self._disable_widget_recursive(child)
+        # 切换描边后刷新预览
+        self._redraw_preview()
     
     def _on_font_change(self, event=None):
         """字体选择变化事件"""
@@ -1214,11 +1209,13 @@ class MainWindow:
         if selected_font_info:
             # 更新样式可用性
             self._update_font_style_availability(selected_font_info['path'])
+        # 字体变化也刷新预览
+        self._redraw_preview()
     
     def _on_font_style_change(self):
         """字体样式变化事件"""
-        # 可以在这里添加实时预览功能
-        pass
+        # 样式变化后刷新预览
+        self._redraw_preview()
     
     def _update_font_style_availability(self, font_path: str):
         """更新字体样式可用性显示"""
@@ -1288,7 +1285,21 @@ class MainWindow:
             font=("Arial", 18)
         )
         # 绑定画布尺寸变化，重绘当前预览
-        self.preview_canvas.bind('<Configure>', lambda e: self._redraw_preview())
+        self.preview_canvas.bind('<Configure>', lambda e: self._schedule_redraw())
+
+    def _schedule_redraw(self, delay: int = 200):
+        """防抖调度重绘，delay 单位毫秒。
+
+        连续触发时会取消上一次计划，减少重复合成开销。
+        """
+        try:
+            if hasattr(self, '_redraw_after_id') and self._redraw_after_id:
+                self.root.after_cancel(self._redraw_after_id)
+        except Exception:
+            pass
+
+        # 在主线程延迟调用真正的重绘函数
+        self._redraw_after_id = self.root.after(delay, lambda: self._redraw_preview())
 
     def _update_preview_image(self, selected_files: List[str]):
         """切换并绘制预览图片（叠加当前水印设置）"""
@@ -1299,7 +1310,7 @@ class MainWindow:
         img_path = selected_files[0]
         try:
             from PIL import Image, ImageTk
-            from ..core.config import Config
+            from ..core.config import Config, WatermarkType
             from ..core.image_processor import ImageProcessor
             # 加载原图
             img = Image.open(img_path)
@@ -1309,8 +1320,20 @@ class MainWindow:
             preview_config.config.preview_mode = True  # 标记为预览模式
             # 合成水印
             processor = ImageProcessor(preview_config)
-            # 仅预览时不做EXIF处理，直接用当前配置
-            watermarked_img = processor.watermark_processor.process_watermark(img)
+            # 依据当前水印类型准备文本（时间水印需从EXIF或回退到当前时间）
+            text_for_watermark = None
+            wm_type = preview_config.config.watermark_type
+            if wm_type == WatermarkType.TIMESTAMP:
+                try:
+                    text_for_watermark = processor.exif_reader.get_watermark_text(img_path, preview_config.config.date_format)
+                except Exception:
+                    # 回退到当前日期格式字符串（保险）
+                    from datetime import datetime
+                    text_for_watermark = processor.exif_reader.format_date(datetime.now(), preview_config.config.date_format)
+            elif wm_type == WatermarkType.TEXT:
+                text_for_watermark = preview_config.config.text_watermark.text
+
+            watermarked_img = processor.watermark_processor.process_watermark(img, text_for_watermark)
 
             # 缩放到预览区域
             canvas_w = max(10, self.preview_canvas.winfo_width())
