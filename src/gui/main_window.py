@@ -943,6 +943,10 @@ class MainWindow:
         self.text_font_combo.pack(side='right')
         self.text_font_combo.bind('<<ComboboxSelected>>', self._on_font_change)
         
+        # 初始化字体样式可用性
+        if font_names:
+            self.root.after(100, lambda: self._on_font_change())
+        
         # 字体大小
         size_frame = ttk.Frame(font_frame)
         size_frame.pack(fill='x', padx=10, pady=5)
@@ -970,8 +974,29 @@ class MainWindow:
         style_frame.pack(fill='x', padx=10, pady=5)
         self.text_bold_var = tk.BooleanVar()
         self.text_italic_var = tk.BooleanVar()
-        ttk.Checkbutton(style_frame, text="粗体", variable=self.text_bold_var).pack(side='left')
-        ttk.Checkbutton(style_frame, text="斜体", variable=self.text_italic_var).pack(side='left', padx=(10, 0))
+        
+        self.bold_checkbox = ttk.Checkbutton(
+            style_frame, text="粗体", 
+            variable=self.text_bold_var,
+            command=self._on_font_style_change
+        )
+        self.bold_checkbox.pack(side='left')
+        
+        self.italic_checkbox = ttk.Checkbutton(
+            style_frame, text="斜体", 
+            variable=self.text_italic_var,
+            command=self._on_font_style_change
+        )
+        self.italic_checkbox.pack(side='left', padx=(10, 0))
+        
+        # 样式可用性提示
+        self.style_info_label = ttk.Label(
+            style_frame, 
+            text="", 
+            foreground="gray",
+            font=('Arial', 8)
+        )
+        self.style_info_label.pack(side='right')
         
         # 透明度
         alpha_frame = ttk.Frame(font_frame)
@@ -1152,11 +1177,59 @@ class MainWindow:
     def _on_font_change(self, event=None):
         """字体选择变化事件"""
         selected_font_name = self.text_font_var.get()
-        # 找到对应的字体路径
+        selected_font_info = None
+        
+        # 找到对应的字体信息
         for font_info in self.recommended_fonts:
             if font_info['name'] == selected_font_name:
-                # 这里可以添加字体预览功能
+                selected_font_info = font_info
                 break
+        
+        if selected_font_info:
+            # 更新样式可用性
+            self._update_font_style_availability(selected_font_info['path'])
+    
+    def _on_font_style_change(self):
+        """字体样式变化事件"""
+        # 可以在这里添加实时预览功能
+        pass
+    
+    def _update_font_style_availability(self, font_path: str):
+        """更新字体样式可用性显示"""
+        try:
+            available_styles = font_manager.get_available_styles_for_font(font_path)
+            
+            # 更新复选框状态
+            has_bold = any('bold' in style for style in available_styles)
+            has_italic = any('italic' in style for style in available_styles)
+            
+            # 启用/禁用复选框
+            self.bold_checkbox.config(state='normal' if has_bold else 'disabled')
+            self.italic_checkbox.config(state='normal' if has_italic else 'disabled')
+            
+            # 如果样式不可用，取消选中
+            if not has_bold:
+                self.text_bold_var.set(False)
+            if not has_italic:
+                self.text_italic_var.set(False)
+            
+            # 更新提示信息
+            style_info = []
+            if has_bold:
+                style_info.append("粗体")
+            if has_italic:
+                style_info.append("斜体")
+            
+            if style_info:
+                self.style_info_label.config(text=f"支持: {', '.join(style_info)}")
+            else:
+                self.style_info_label.config(text="仅支持常规样式")
+                
+        except Exception as e:
+            # 出错时启用所有样式选项
+            self.bold_checkbox.config(state='normal')
+            self.italic_checkbox.config(state='normal')
+            self.style_info_label.config(text="")
     
     def _browse_watermark_image(self):
         """浏览水印图片"""
