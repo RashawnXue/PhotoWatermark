@@ -27,8 +27,9 @@ class ExifReader:
     
     def extract_datetime(self, filepath: str) -> Optional[datetime]:
         """提取图片的拍摄时间"""
+        # 对于不支持EXIF的格式（如BMP、PNG），直接使用文件修改时间
         if not self.can_read_exif(filepath):
-            return None
+            return self._get_file_modification_time(filepath)
         
         try:
             # 使用PIL读取EXIF信息
