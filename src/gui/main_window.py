@@ -187,37 +187,75 @@ class MainWindow:
         
         # 绑定鼠标滚轮事件
         def _on_mousewheel(event):
-            # 跨平台鼠标滚轮处理
-            if hasattr(event, 'delta') and event.delta:
-                # Windows和macOS
-                delta = int(-1 * (event.delta / 120))
-            else:
+            """处理鼠标滚轮事件"""
+            try:
+                # macOS和Windows - 修复delta计算
+                if hasattr(event, 'delta') and event.delta != 0:
+                    # macOS上delta通常是较小的值，不需要除以120
+                    if abs(event.delta) < 5:
+                        delta = -1 if event.delta < 0 else 1
+                    else:
+                        # Windows上的大delta值
+                        delta = -1 * int(event.delta / 120)
+                        if delta == 0:  # 确保不为0
+                            delta = -1 if event.delta < 0 else 1
                 # Linux
-                delta = -1 if event.num == 4 else 1
-            canvas.yview_scroll(delta, "units")
+                elif hasattr(event, 'num'):
+                    if event.num == 4:
+                        delta = -1
+                    elif event.num == 5:
+                        delta = 1
+                    else:
+                        return
+                else:
+                    return
+                    
+                canvas.yview_scroll(delta, "units")
+            except Exception as e:
+                print(f"鼠标滚轮事件处理错误: {e}")
             return "break"
         
-        def _bind_mousewheel(widget):
-            """绑定鼠标滚轮事件到指定组件"""
-            # Windows和macOS
-            widget.bind("<MouseWheel>", _on_mousewheel)
-            # Linux
-            widget.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
-            widget.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+        def _on_mousewheel_up(event):
+            """向上滚动"""
+            canvas.yview_scroll(-1, "units")
+            return "break"
+            
+        def _on_mousewheel_down(event):
+            """向下滚动"""
+            canvas.yview_scroll(1, "units")
+            return "break"
         
-        # 绑定鼠标滚轮到canvas和settings_frame
-        _bind_mousewheel(canvas)
-        _bind_mousewheel(settings_frame)
+        def _bind_mousewheel_to_widget(widget):
+            """为指定组件绑定鼠标滚轮事件"""
+            try:
+                # macOS和Windows
+                widget.bind("<MouseWheel>", _on_mousewheel)
+                # Linux
+                widget.bind("<Button-4>", _on_mousewheel_up)
+                widget.bind("<Button-5>", _on_mousewheel_down)
+            except Exception as e:
+                print(f"绑定鼠标滚轮事件失败: {e}")
         
-        # 延迟绑定到scrollable_frame及其子组件
-        def _bind_children():
-            def _bind_recursive(widget):
-                _bind_mousewheel(widget)
-                for child in widget.winfo_children():
-                    _bind_recursive(child)
-            _bind_recursive(scrollable_frame)
+        # 立即绑定到主要组件
+        _bind_mousewheel_to_widget(canvas)
+        _bind_mousewheel_to_widget(settings_frame)
         
-        settings_frame.after(100, _bind_children)
+        # 递归绑定到所有子组件的函数
+        def _bind_to_all_children(parent_widget):
+            """递归绑定鼠标滚轮到所有子组件"""
+            try:
+                _bind_mousewheel_to_widget(parent_widget)
+                for child in parent_widget.winfo_children():
+                    _bind_to_all_children(child)
+            except Exception as e:
+                print(f"递归绑定失败: {e}")
+        
+        # 延迟绑定到scrollable_frame及其所有子组件
+        def _delayed_bind():
+            _bind_to_all_children(scrollable_frame)
+        
+        # 使用更长的延迟确保所有组件都已创建
+        settings_frame.after(200, _delayed_bind)
         
         # 设置面板标题
         ttk.Label(
