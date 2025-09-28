@@ -1,8 +1,0 @@
----
-description: PhotoWatermark 开发规则
-globs:
-alwaysApply: true
----
-
-- 开发遵守单一职责原则，一个方法只实现一个具体的职责。同时，尽可能在合适的颗粒度上按照文件区分代码模块
-
