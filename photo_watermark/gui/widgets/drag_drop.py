@@ -21,7 +21,7 @@ class DragDropFrame(ttk.Frame):
         self.drop_area = tk.Frame(
             self,
             bg='#f0f0f0',
-            relief='dashed',
+            relief='ridge',
             bd=2,
             height=200
         )
