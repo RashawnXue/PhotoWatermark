@@ -90,11 +90,11 @@ class ExportDialog:
         # 输出目录设置
         self._create_output_dir_section(main_frame)
         
+        # 输出格式设置（需要在命名设置之前创建，因为命名预览需要用到格式变量）
+        self._create_format_section(main_frame)
+        
         # 文件命名设置
         self._create_naming_section(main_frame)
-        
-        # 输出格式设置
-        self._create_format_section(main_frame)
         
         # 图片缩放设置
         self._create_resize_section(main_frame)
@@ -317,12 +317,16 @@ class ExportDialog:
         
     def _update_preview(self, *args):
         """更新文件名预览"""
+        # 检查必要的变量是否存在
+        if not hasattr(self, 'naming_var') or not hasattr(self, 'format_var') or not hasattr(self, 'preview_label'):
+            return
+            
         naming_type = self.naming_var.get()
         example_name = "example"
         
-        if naming_type == "prefix":
+        if naming_type == "prefix" and hasattr(self, 'prefix_var'):
             preview_name = f"{self.prefix_var.get()}{example_name}"
-        elif naming_type == "suffix":
+        elif naming_type == "suffix" and hasattr(self, 'suffix_var'):
             preview_name = f"{example_name}{self.suffix_var.get()}"
         else:
             preview_name = example_name
