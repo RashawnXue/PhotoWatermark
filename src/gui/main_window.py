@@ -18,6 +18,7 @@ except ImportError:
 from .widgets.drag_drop import DragDropFrame
 from .widgets.thumbnail import ThumbnailList
 from .widgets.progress import ProgressDialog
+from .widgets.export_confirm import ExportConfirmDialog
 from .file_manager import FileManager
 from .export_dialog import ExportDialog
 from ..core.config import Config, Position, DateFormat
@@ -442,7 +443,7 @@ class MainWindow:
         config = export_dialog.show()
         
         if config:
-            self._start_export_with_config(files_to_export, config)
+            self._show_export_confirmation(files_to_export, config)
             
     def _start_export(self, config: dict):
         """开始导出（从对话框回调）"""
@@ -450,7 +451,28 @@ class MainWindow:
         all_files = self.thumbnail_list.get_all_files()
         files_to_export = selected_files if selected_files else all_files
         
-        self._start_export_with_config(files_to_export, config)
+        self._show_export_confirmation(files_to_export, config)
+        
+    def _show_export_confirmation(self, files: List[str], config: dict):
+        """显示导出确认对话框"""
+        confirm_dialog = ExportConfirmDialog(
+            self.root, 
+            files, 
+            config, 
+            on_confirm=lambda: self._start_export_with_config(files, config)
+        )
+        result = confirm_dialog.show()
+        
+        if result == 'modify':
+            # 用户选择修改设置，重新打开导出设置对话框
+            export_dialog = ExportDialog(self.root, initial_config=config, on_export=self._start_export)
+            new_config = export_dialog.show()
+            if new_config:
+                self._show_export_confirmation(files, new_config)
+        elif result is True:
+            # 用户确认导出，开始实际导出过程
+            self._start_export_with_config(files, config)
+        # result is False 表示用户取消，不做任何操作
         
     def _start_export_with_config(self, files: List[str], config: dict):
         """使用指定配置开始导出"""

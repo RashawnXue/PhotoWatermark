@@ -7,5 +7,6 @@ GUI组件模块
 from .drag_drop import DragDropFrame
 from .thumbnail import ThumbnailList
 from .progress import ProgressDialog
+from .export_confirm import ExportConfirmDialog
 
-__all__ = ['DragDropFrame', 'ThumbnailList', 'ProgressDialog']
+__all__ = ['DragDropFrame', 'ThumbnailList', 'ProgressDialog', 'ExportConfirmDialog']
