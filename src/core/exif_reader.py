@@ -27,8 +27,9 @@ class ExifReader:
     
     def extract_datetime(self, filepath: str) -> Optional[datetime]:
         """提取图片的拍摄时间"""
+        # 对于不支持EXIF的格式（如BMP、PNG），直接使用文件修改时间
         if not self.can_read_exif(filepath):
-            return None
+            return self._get_file_modification_time(filepath)
         
         try:
             # 使用PIL读取EXIF信息
@@ -122,9 +123,10 @@ class ExifReader:
     def get_watermark_text(self, filepath: str, format_type: DateFormat) -> Optional[str]:
         """获取用于水印的文本"""
         dt = self.extract_datetime(filepath)
+        # 如果无法从图片或文件元信息中提取时间，则回退到当前时间
         if dt is None:
-            return None
-        
+            dt = datetime.now()
+
         return self.format_date(dt, format_type)
     
     def get_all_exif_info(self, filepath: str) -> Dict[str, Any]:

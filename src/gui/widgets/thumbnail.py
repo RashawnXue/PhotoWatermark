@@ -45,9 +45,9 @@ class ThumbnailItem:
         size_str = f"{size_mb:.1f}MB" if size_mb >= 1 else f"{self.file_size // 1024}KB"
         
         if self.image_size:
-            return f"{self.filename}\\n{self.image_size[0]}x{self.image_size[1]} | {size_str}"
+            return f"{self.filename}\n{self.image_size[0]}x{self.image_size[1]} | {size_str}"
         else:
-            return f"{self.filename}\\n{size_str}"
+            return f"{self.filename}\n{size_str}"
 
 
 class ThumbnailList(ttk.Frame):

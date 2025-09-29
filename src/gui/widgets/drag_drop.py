@@ -35,9 +35,9 @@ class DragDropFrame(ttk.Frame):
         self.drop_area.pack(fill='both', expand=True, padx=10, pady=10)
         
         # 添加提示文本
-        drag_text = "拖拽图片文件到此处\\n或点击下方按钮选择文件"
+        drag_text = "拖拽图片文件到此处\n或点击下方按钮选择文件"
         if not DND_AVAILABLE:
-            drag_text = "点击下方按钮选择文件\\n(拖拽功能需要安装 tkinterdnd2)"
+            drag_text = "点击下方按钮选择文件\n(拖拽功能需要安装 tkinterdnd2)"
             
         self.label = tk.Label(
             self.drop_area,
@@ -87,12 +87,12 @@ class DragDropFrame(ttk.Frame):
                 self.update_text("文件已拖拽导入！")
                 # 2秒后恢复原始文本
                 self.after(2000, lambda: self.update_text(
-                    "拖拽图片文件到此处\\n或点击下方按钮选择文件"
+                    "拖拽图片文件到此处\n或点击下方按钮选择文件"
                 ))
             else:
                 self.update_text("没有找到有效的文件或目录")
                 self.after(2000, lambda: self.update_text(
-                    "拖拽图片文件到此处\\n或点击下方按钮选择文件"
+                    "拖拽图片文件到此处\n或点击下方按钮选择文件"
                 ))
         
     def _parse_drop_files(self, data):
@@ -145,7 +145,7 @@ class DragDropFrame(ttk.Frame):
         """拖拽离开事件"""
         self.drop_area.config(bg='#f0f0f0')
         self.label.config(bg='#f0f0f0', fg='#666666')
-        self.update_text("拖拽图片文件到此处\\n或点击下方按钮选择文件")
+        self.update_text("拖拽图片文件到此处\n或点击下方按钮选择文件")
         
     def _on_mouse_enter(self, event):
         """鼠标进入事件"""

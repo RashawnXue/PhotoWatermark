@@ -10,6 +10,7 @@ from typing import List, Tuple, Optional, Generator
 from pathlib import Path
 from tqdm import tqdm
 from PIL import Image
+from datetime import datetime
 
 from .config import Config
 from .exif_reader import ExifReader
@@ -126,9 +127,13 @@ class ImageProcessor:
                 input_path, self.config.config.date_format
             )
             
+            # ExifReader now always returns a formatted date string (falls back to current date)
+            # but we still record when the original image had no EXIF info for statistics.
             if watermark_text is None:
+                # 记录无EXIF的情况，但不阻止处理流程（ExifReader will now fallback to current date）
                 self.stats['no_exif_files'] += 1
-                return False, "无法提取拍摄时间信息"
+                # 获取一个回退的时间字符串以继续处理
+                watermark_text = self.exif_reader.format_date(datetime.now(), self.config.config.date_format)
             
             # 预览模式
             if self.config.config.preview_mode:
