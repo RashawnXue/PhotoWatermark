@@ -659,13 +659,18 @@ class WatermarkProcessor:
                                 continue
                             self._draw_multiline_text(layer_draw, (local_x + dx, local_y + dy), text_content, font, stroke_color)
 
-                # 主文本 - 使用不同来源的颜色/透明度：
-                # - 对于 TEXT 类型，优先使用 text_watermark 中的 font_color/font_alpha
-                # - 对于 TIMESTAMP，使用全局 config.font_color/config.font_alpha
-                if tw_cfg and getattr(tw_cfg, 'font_color', None):
-                    cfg_color = getattr(tw_cfg, 'font_color')
-                    cfg_alpha = getattr(tw_cfg, 'font_alpha', self.config.config.font_alpha)
+                # 主文本 - 对于不同类型选择颜色/透明度来源：
+                # - TEXT 类型：优先使用 text_watermark 中的 font_color/font_alpha（若设置），否则回退到全局
+                # - TIMESTAMP 类型：使用全局 config.font_color/config.font_alpha（不使用 text_watermark 的颜色）
+                if watermark_type.name == 'TEXT':
+                    if tw_cfg and getattr(tw_cfg, 'font_color', None):
+                        cfg_color = getattr(tw_cfg, 'font_color')
+                        cfg_alpha = getattr(tw_cfg, 'font_alpha', self.config.config.font_alpha)
+                    else:
+                        cfg_color = self.config.config.font_color
+                        cfg_alpha = self.config.config.font_alpha
                 else:
+                    # TIMESTAMP 等其他类型使用全局颜色/透明度
                     cfg_color = self.config.config.font_color
                     cfg_alpha = self.config.config.font_alpha
 
