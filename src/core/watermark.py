@@ -183,50 +183,43 @@ class WatermarkProcessor:
         return result
     
     def add_text_watermark(self, image: Image.Image) -> Image.Image:
-        """添加自定义文本水印"""
+        """添加自定义文本水印
+
+        处理流程：
+        - 在局部 RGBA 层中居中绘制文本及其阴影/描边
+        - 根据配置旋转该局部层（expand=True）
+        - 将旋转后的局部层以中心对齐的方式粘贴回原图，避免裁切
+        """
         text_config = self.config.config.text_watermark
-        
+
         if not text_config.text.strip():
-            return image.copy()  # 如果没有文本内容，返回原图
-        
-        # 创建副本以避免修改原图
+            return image.copy()
+
         watermarked_image = image.copy()
-        
-        # 获取图片尺寸
         img_width, img_height = watermarked_image.size
-        
-        # 计算字体大小
+
         font_size = text_config.font_size or self.config.get_auto_font_size(img_width, img_height)
-        font = self._get_font(
-            font_size, 
-            text_config.font_path, 
-            text_config.font_bold, 
-            text_config.font_italic
-        )
-        
-        # 获取文本尺寸
+        font = self._get_font(font_size, text_config.font_path, text_config.font_bold, text_config.font_italic)
+
         text_width, text_height = self._get_text_size(text_config.text, font)
-        
-        # 计算水印位置
-        x, y = self.config.get_position_coordinates(
-            img_width, img_height, text_width, text_height
-        )
-        
-        # 解析颜色和透明度
+
+        # desired top-left position for the (unrotated) text
+        x, y = self.config.get_position_coordinates(img_width, img_height, text_width, text_height)
+
         color_rgb = self._parse_color(text_config.font_color)
         alpha = int(text_config.font_alpha * 255)
         text_color = color_rgb + (alpha,)
-        
-        # 为了支持旋转，我们在单独的透明图层上绘制文本和效果，然后旋转该层并粘贴回原图
-        # 创建最小透明层，仅包含文本区域以减少旋转开销
-        text_layer = Image.new('RGBA', (text_width + 10, text_height + 10), (0, 0, 0, 0))
+
+        # padded layer to avoid clipping during rotation
+        pad_w, pad_h = 40, 40
+        text_layer = Image.new('RGBA', (text_width + pad_w, text_height + pad_h), (0, 0, 0, 0))
         layer_draw = ImageDraw.Draw(text_layer)
 
-        # 在局部层上绘制阴影、描边和主文本（使用相对于局部层的坐标）
-        local_x = 5
-        local_y = 5
+        # center text in the padded layer
+        local_x = (text_layer.width - text_width) // 2
+        local_y = (text_layer.height - text_height) // 2
 
-        # 阴影
+        # draw shadow if configured
         if text_config.shadow_enabled:
             shadow_color_rgb = self._parse_color(text_config.shadow_color)
             shadow_alpha = int(text_config.shadow_alpha * 255)
@@ -243,20 +236,20 @@ class WatermarkProcessor:
             else:
                 self._draw_multiline_text(layer_draw, (shadow_x, shadow_y), text_config.text, font, shadow_color)
 
-        # 描边
+        # stroke
         if text_config.stroke_enabled:
             stroke_color_rgb = self._parse_color(text_config.stroke_color)
             stroke_color = stroke_color_rgb + (255,)
-            for dx in range(-text_config.stroke_width, text_config.stroke_width + 1):
-                for dy in range(-text_config.stroke_width, text_config.stroke_width + 1):
+            stroke_w = getattr(text_config, 'stroke_width', 1)
+            for dx in range(-stroke_w, stroke_w + 1):
+                for dy in range(-stroke_w, stroke_w + 1):
                     if dx == 0 and dy == 0:
                         continue
                     self._draw_multiline_text(layer_draw, (local_x + dx, local_y + dy), text_config.text, font, stroke_color)
 
-        # 主文本
+        # main text
         self._draw_multiline_text(layer_draw, (local_x, local_y), text_config.text, font, text_color)
 
-        # 旋转局部层
         rot_angle = 0.0
         try:
             rot_angle = float(getattr(text_config, 'rotation', 0.0))
@@ -264,24 +257,21 @@ class WatermarkProcessor:
             rot_angle = 0.0
 
         if rot_angle != 0:
-            # rotate会改变尺寸，使用expand=True
-            rotated_layer = text_layer.rotate(-rot_angle, expand=True, resample=Image.Resampling.BICUBIC)
+                rotated_layer = text_layer.rotate(rot_angle, expand=True, resample=Image.Resampling.BICUBIC)
         else:
             rotated_layer = text_layer
 
-        # 将旋转后的局部层粘贴到目标位置（x,y 为原始图片上的位置）
-        paste_x = x - (rotated_layer.width - text_layer.width) // 2
-        paste_y = y - (rotated_layer.height - text_layer.height) // 2
+        # paste rotated layer so that centers align with the intended (x,y) text box
+        paste_x = int(x + text_width / 2 - rotated_layer.width / 2)
+        paste_y = int(y + text_height / 2 - rotated_layer.height / 2)
 
         if watermarked_image.mode != 'RGBA':
             watermarked_image = watermarked_image.convert('RGBA')
 
-        # 创建overlay并粘贴
         overlay = Image.new('RGBA', watermarked_image.size, (0, 0, 0, 0))
         overlay.paste(rotated_layer, (paste_x, paste_y), rotated_layer)
         watermarked_image = Image.alpha_composite(watermarked_image, overlay)
 
-        # 如果原图不是RGBA模式，转换回原模式
         if image.mode != 'RGBA':
             watermarked_image = watermarked_image.convert(image.mode)
 
@@ -391,11 +381,14 @@ class WatermarkProcessor:
         alpha = int(self.config.config.font_alpha * 255)
         color_with_alpha = (*color, alpha)
 
-        # 使用与 add_text_watermark 类似的流程：在局部层绘制文本与效果，然后旋转并合并
-        text_layer = Image.new('RGBA', (text_width + 10, text_height + 10), (0, 0, 0, 0))
+        # 使用与 add_text_watermark 类似的流程：在局部层绘制文本及其效果，然后旋转并合并
+        # add a larger padding to avoid clipping when rotating large glyphs
+        text_layer = Image.new('RGBA', (text_width + 40, text_height + 40), (0, 0, 0, 0))
         layer_draw = ImageDraw.Draw(text_layer)
-        local_x = 5
-        local_y = 5
+
+        # center text in the padded layer to make rotation safe
+        local_x = (text_layer.width - text_width) // 2
+        local_y = (text_layer.height - text_height) // 2
 
         # 阴影（如果配置在 text_watermark 中）
         try:
@@ -442,12 +435,13 @@ class WatermarkProcessor:
                 rot_angle = 0.0
 
         if rot_angle != 0:
-            rotated_layer = text_layer.rotate(-rot_angle, expand=True, resample=Image.Resampling.BICUBIC)
+                rotated_layer = text_layer.rotate(rot_angle, expand=True, resample=Image.Resampling.BICUBIC)
         else:
             rotated_layer = text_layer
 
-        paste_x = x - (rotated_layer.width - text_layer.width) // 2
-        paste_y = y - (rotated_layer.height - text_layer.height) // 2
+        # align rotated layer center to the intended text center
+        paste_x = int(x + text_width / 2 - rotated_layer.width / 2)
+        paste_y = int(y + text_height / 2 - rotated_layer.height / 2)
 
         if watermarked_image.mode != 'RGBA':
             watermarked_image = watermarked_image.convert('RGBA')
@@ -630,10 +624,12 @@ class WatermarkProcessor:
                 text_width, text_height = self._get_text_size(text_content, font)
 
                 # 构建局部层并绘制文本（重用 add_watermark 中的局部绘制方式)
-                text_layer = Image.new('RGBA', (text_width + 10, text_height + 10), (0, 0, 0, 0))
+                # add a larger padding to avoid clipping when rotating large glyphs
+                text_layer = Image.new('RGBA', (text_width + 40, text_height + 40), (0, 0, 0, 0))
                 layer_draw = ImageDraw.Draw(text_layer)
-                local_x = 5
-                local_y = 5
+                # local offsets inside the temporary layer (match the padding above)
+                local_x = 20
+                local_y = 20
 
                 tw_cfg = getattr(self.config.config, 'text_watermark', None)
                 # 阴影
@@ -663,9 +659,18 @@ class WatermarkProcessor:
                                 continue
                             self._draw_multiline_text(layer_draw, (local_x + dx, local_y + dy), text_content, font, stroke_color)
 
-                # 主文本
-                color = self._parse_color(self.config.config.font_color)
-                alpha = int(self.config.config.font_alpha * 255)
+                # 主文本 - 使用不同来源的颜色/透明度：
+                # - 对于 TEXT 类型，优先使用 text_watermark 中的 font_color/font_alpha
+                # - 对于 TIMESTAMP，使用全局 config.font_color/config.font_alpha
+                if tw_cfg and getattr(tw_cfg, 'font_color', None):
+                    cfg_color = getattr(tw_cfg, 'font_color')
+                    cfg_alpha = getattr(tw_cfg, 'font_alpha', self.config.config.font_alpha)
+                else:
+                    cfg_color = self.config.config.font_color
+                    cfg_alpha = self.config.config.font_alpha
+
+                color = self._parse_color(cfg_color)
+                alpha = int(cfg_alpha * 255)
                 color_with_alpha = (*color, alpha)
                 self._draw_multiline_text(layer_draw, (local_x, local_y), text_content, font, color_with_alpha)
 
@@ -676,15 +681,16 @@ class WatermarkProcessor:
                     rot_angle = 0.0
 
                 if rot_angle != 0:
-                    rotated_layer = text_layer.rotate(-rot_angle, expand=True, resample=Image.Resampling.BICUBIC)
+                        rotated_layer = text_layer.rotate(rot_angle, expand=True, resample=Image.Resampling.BICUBIC)
                 else:
                     rotated_layer = text_layer
 
-                # 计算位置
-                text_wm_width, text_wm_height = rotated_layer.size
-                x, y = self.config.get_position_coordinates(base_img.width, base_img.height, text_wm_width, text_wm_height)
-                paste_x = x
-                paste_y = y
+                # 计算位置并按 add_text_watermark 的逻辑对齐（使旋转后层围绕原文本位置居中）
+                # 首先根据未旋转的文本尺寸计算参考位置
+                ref_x, ref_y = self.config.get_position_coordinates(base_img.width, base_img.height, text_width, text_height)
+                # align rotated layer center to the reference (unrotated) text center
+                paste_x = int(ref_x + text_width / 2 - rotated_layer.width / 2)
+                paste_y = int(ref_y + text_height / 2 - rotated_layer.height / 2)
                 overlay.paste(rotated_layer, (paste_x, paste_y), rotated_layer)
             except Exception:
                 pass

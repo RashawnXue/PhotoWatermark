@@ -743,15 +743,21 @@ class MainWindow:
         if hasattr(self, 'custom_position') and self.custom_position is not None:
             watermark_config.custom_position = self.custom_position
 
-        # 写入旋转角度到文本水印配置（时间水印和文本水印共享rotation字段）
+        # 写入旋转角度到文本和图片水印配置（支持所有类型的水印）
         try:
-            rot_val = int(self.rotation_var.get()) if hasattr(self, 'rotation_var') else 0
+            rot_val = float(self.rotation_var.get()) if hasattr(self, 'rotation_var') else 0.0
         except Exception:
-            rot_val = 0
+            rot_val = 0.0
 
         try:
             if watermark_config.text_watermark is not None:
                 watermark_config.text_watermark.rotation = float(rot_val)
+        except Exception:
+            pass
+
+        try:
+            if watermark_config.image_watermark is not None:
+                watermark_config.image_watermark.rotation = float(rot_val)
         except Exception:
             pass
 
@@ -953,17 +959,23 @@ class MainWindow:
         ts_size_entry.pack(anchor='w', padx=10, pady=(0, 10))
         self.timestamp_font_size_var.trace_add('write', lambda *args: self._schedule_redraw())
 
-        # 旋转控制（时间水印/文本水印可共享）
-        ttk.Label(timestamp_frame, text="旋转角度 (°):").pack(anchor='w', padx=10, pady=(0, 0))
-        self.rotation_var = tk.IntVar(value=0)
-        rotation_frame = ttk.Frame(timestamp_frame)
-        rotation_frame.pack(fill='x', padx=10, pady=(0, 10))
-        rotation_slider = ttk.Scale(rotation_frame, from_=-180, to=180, variable=self.rotation_var, orient='horizontal', command=lambda v: self._schedule_redraw())
-        rotation_slider.pack(side='left', fill='x', expand=True)
-        rotation_entry = ttk.Entry(rotation_frame, textvariable=self.rotation_var, width=6)
-        rotation_entry.pack(side='right', padx=(5, 0))
-
         self._schedule_redraw()
+
+    def _on_rotation_slider(self, value: str):
+        """当旋转滑块移动时，更新文本输入框并触发重绘"""
+        try:
+            # value may be string from Tk scale
+            val = float(value)
+            # normalize to -180..180
+            if val > 180:
+                val = 180.0
+            if val < -180:
+                val = -180.0
+            # write back as integer-like string for the entry
+            self.rotation_var.set(str(int(val)))
+        except Exception:
+            # ignore slider glitches
+            pass
     
     def _create_text_watermark_tab(self):
         """创建文本水印选项卡"""
@@ -1273,7 +1285,19 @@ class MainWindow:
             btn.grid(row=r, column=c, padx=3, pady=3)
             self._position_buttons[pos_enum] = btn
 
-        # 坐标输入（像素）
+        # 旋转控制（放在位置设置面板以便快速定位/预览）
+        ttk.Label(position_frame, text="旋转角度 (°):").pack(anchor='w', padx=10, pady=(5, 0))
+        self.rotation_var = tk.StringVar(value='0')
+        rot_ui_frame = ttk.Frame(position_frame)
+        rot_ui_frame.pack(fill='x', padx=10, pady=(0, 5))
+        rot_slider = ttk.Scale(rot_ui_frame, from_=-180, to=180, variable=tk.DoubleVar(value=0.0), orient='horizontal', command=lambda v: self._on_rotation_slider(v))
+        rot_slider.pack(side='left', fill='x', expand=True)
+        rot_entry = ttk.Entry(rot_ui_frame, textvariable=self.rotation_var, width=6)
+        rot_entry.pack(side='right', padx=(5, 0))
+        # 自动刷新并验证旋转角度输入
+        self.rotation_var.trace_add('write', lambda *args: self._schedule_redraw())
+
+    # 坐标输入（像素）
         coord_frame = ttk.Frame(position_frame)
         coord_frame.pack(fill='x', padx=10, pady=(5, 10))
         ttk.Label(coord_frame, text="坐标 (px):").pack(side='left')
@@ -1672,8 +1696,9 @@ class MainWindow:
                 anchor='nw'
             )
         except Exception as e:
-            # 如果是因为字体大小输入非法（非数字）导致的错误，给出友好提示
+            # 验证字体大小与旋转角度输入是否合法，给出友好提示
             bad_font_input = False
+            bad_rotation_input = False
             try:
                 # 尝试读取并转换时间水印字号/文本水印字号
                 if hasattr(self, 'timestamp_font_size_var'):
@@ -1683,9 +1708,18 @@ class MainWindow:
             except Exception:
                 bad_font_input = True
 
+            try:
+                if hasattr(self, 'rotation_var'):
+                    # allow empty/str that can be converted
+                    _ = float(self.rotation_var.get())
+            except Exception:
+                bad_rotation_input = True
+
             self.preview_canvas.delete('all')
             if bad_font_input:
                 message = "请正确输入字体大小"
+            elif bad_rotation_input:
+                message = "请正确输入旋转角度"
             else:
                 message = f"图片加载失败\n{e}"
 
