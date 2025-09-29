@@ -1191,18 +1191,40 @@ class MainWindow:
         position_frame.pack(fill='x', padx=10, pady=(5, 0))
         
         ttk.Label(position_frame, text="水印位置:").pack(anchor='w', padx=10, pady=(5, 0))
+        # internal position (enum value strings)
         self.position_var = tk.StringVar(value="bottom-right")
+        # user-facing display (Chinese labels)
+        self._position_display_map = {
+            'top-left': '左上',
+            'top-center': '顶部居中',
+            'top-right': '右上',
+            'center-left': '左中',
+            'center': '居中',
+            'center-right': '右中',
+            'bottom-left': '左下',
+            'bottom-center': '底部居中',
+            'bottom-right': '右下'
+        }
+        # reverse map
+        self._position_reverse_map = {v: k for k, v in self._position_display_map.items()}
+
+        self.position_display_var = tk.StringVar(value=self._position_display_map.get(self.position_var.get(), '右下'))
         position_combo = ttk.Combobox(
             position_frame,
-            textvariable=self.position_var,
-            values=["top-left", "top-center", "top-right", 
-                   "center-left", "center", "center-right",
-                   "bottom-left", "bottom-center", "bottom-right"],
+            textvariable=self.position_display_var,
+            values=list(self._position_display_map.values()),
             state="readonly"
         )
         position_combo.pack(fill='x', padx=10, pady=(0, 10))
-        # 位置选择变化时刷新预览
-        position_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
+        # 位置选择变化时同步内部 position_var 并刷新预览
+        def _on_position_display_change(event=None):
+            disp = self.position_display_var.get()
+            eng = self._position_reverse_map.get(disp)
+            if eng:
+                self.position_var.set(eng)
+            self._schedule_redraw()
+
+        position_combo.bind('<<ComboboxSelected>>', _on_position_display_change)
 
         # 增加九宫格预设按钮（便捷一键定位）
         presets_frame = ttk.Frame(position_frame)
