@@ -5,7 +5,7 @@ PhotoWatermark GUI应用的主界面。
 """
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, simpledialog
 import os
 from typing import List, Optional, Tuple
 
@@ -22,6 +22,7 @@ from .widgets.export_confirm import ExportConfirmDialog
 from .file_manager import FileManager
 from .export_dialog import ExportDialog
 from ..core.config import Config, Position, DateFormat
+from ..core.template_manager import TemplateManager
 from ..core.image_processor import ImageProcessor
 from ..utils.font_manager import font_manager
 
@@ -39,6 +40,11 @@ class MainWindow:
             
         self.file_manager = FileManager()
         self.config = Config()
+        # Template manager for saving/loading templates and last session
+        try:
+            self.template_manager = TemplateManager()
+        except Exception:
+            self.template_manager = None
         self.image_processor = None
         # 当前自定义坐标（像素，基于原始图片尺寸）
         self.custom_position: Optional[Tuple[int, int]] = None
@@ -58,6 +64,30 @@ class MainWindow:
         
         # 绑定事件
         self._bind_events()
+        # Try to auto-restore last session
+        try:
+            if self.template_manager:
+                last = self.template_manager.load_last_session()
+                if last:
+                    # apply loaded config to GUI
+                    self._apply_config_to_gui(last)
+        except Exception:
+            pass
+
+        # If no last session, try loading a default template (if configured)
+        try:
+            if self.template_manager and not getattr(self, 'config_loaded_from_last', False):
+                default_cfg = self.template_manager.load_default_template()
+                if default_cfg:
+                    self._apply_config_to_gui(default_cfg)
+        except Exception:
+            pass
+
+        # bind exit to save last session
+        try:
+            self.root.protocol('WM_DELETE_WINDOW', self._on_app_close)
+        except Exception:
+            pass
 
     def _setup_window(self):
         """设置主窗口"""
@@ -161,6 +191,8 @@ class MainWindow:
 
         # 水印设置
         self._create_watermark_settings(scrollable_frame)
+        # 模板设置（嵌入在设置面板下方）
+        self._create_template_settings(scrollable_frame)
 
         # 导出设置
         export_frame = ttk.LabelFrame(scrollable_frame, text="导出设置")
@@ -376,7 +408,7 @@ class MainWindow:
         file_menu.add_separator()
         file_menu.add_command(label="导出...", command=self._export_images, accelerator="Ctrl+E")
         file_menu.add_separator()
-        file_menu.add_command(label="退出", command=self.root.quit, accelerator="Ctrl+Q")
+        file_menu.add_command(label="退出", command=self._on_app_close, accelerator="Ctrl+Q")
         
         # 编辑菜单
         edit_menu = tk.Menu(menubar, tearoff=0)
@@ -394,6 +426,14 @@ class MainWindow:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
         help_menu.add_command(label="关于", command=self._show_about)
+        
+        # 模板菜单
+        templates_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="模板", menu=templates_menu)
+        templates_menu.add_command(label="保存为模板...", command=self._save_template_dialog)
+        templates_menu.add_command(label="模板管理器...", command=self._open_template_manager)
+        templates_menu.add_separator()
+        templates_menu.add_command(label="导入模板...", command=lambda: messagebox.showinfo("提示", "导入模板功能暂未实现"))
         
     def _create_toolbar(self):
         """创建工具栏"""
@@ -446,7 +486,7 @@ class MainWindow:
         self.root.bind('<Control-e>', lambda e: self._export_images())
         self.root.bind('<Control-a>', lambda e: self._select_all())
         self.root.bind('<Control-l>', lambda e: self._clear_list())
-        self.root.bind('<Control-q>', lambda e: self.root.quit())
+        self.root.bind('<Control-q>', lambda e: self._on_app_close())
         
     def _import_files(self):
         """导入文件"""
@@ -720,6 +760,20 @@ class MainWindow:
             except Exception:
                 position = Position.BOTTOM_RIGHT
 
+        # 额外的通用设置
+        margin_val = None
+        try:
+            margin_val = int(self.margin_var.get()) if hasattr(self, 'margin_var') else None
+        except Exception:
+            margin_val = None
+
+        # 日期格式（用于时间水印）
+        date_format_val = None
+        try:
+            date_format_val = DateFormat(self.date_format_var.get()) if hasattr(self, 'date_format_var') else None
+        except Exception:
+            date_format_val = None
+
         # 决定时间水印的字体大小来源（时间水印使用 timestamp_font_size_var）
         chosen_font_size = None
         if watermark_type == WatermarkType.TIMESTAMP:
@@ -738,6 +792,44 @@ class MainWindow:
             text_watermark=text_watermark,
             image_watermark=image_watermark
         )
+
+        # apply optional common settings
+        if margin_val is not None:
+            watermark_config.margin = margin_val
+        if date_format_val is not None:
+            watermark_config.date_format = date_format_val
+
+        # read advanced visual options if UI exposes them
+        try:
+            if hasattr(self, 'shadow_color_var'):
+                watermark_config.text_watermark.shadow_color = self.shadow_color_var.get()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'shadow_blur_var'):
+                watermark_config.text_watermark.shadow_blur = int(self.shadow_blur_var.get())
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'shadow_alpha_var'):
+                watermark_config.text_watermark.shadow_alpha = float(self.shadow_alpha_var.get())
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'stroke_color_var'):
+                watermark_config.text_watermark.stroke_color = self.stroke_color_var.get()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'flip_horizontal_var'):
+                watermark_config.image_watermark.flip_horizontal = bool(self.flip_horizontal_var.get())
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'flip_vertical_var'):
+                watermark_config.image_watermark.flip_vertical = bool(self.flip_vertical_var.get())
+        except Exception:
+            pass
 
         # 如果用户设置了自定义像素坐标，则将其写入配置，后端会优先使用 custom_position
         if hasattr(self, 'custom_position') and self.custom_position is not None:
@@ -911,7 +1003,6 @@ class MainWindow:
         # 创建选项卡
         self.watermark_notebook = ttk.Notebook(watermark_frame)
         self.watermark_notebook.pack(fill='both', expand=True, padx=10, pady=10)
-        
         # 时间水印选项卡
         self._create_timestamp_watermark_tab()
         
@@ -960,6 +1051,39 @@ class MainWindow:
         self.timestamp_font_size_var.trace_add('write', lambda *args: self._schedule_redraw())
 
         self._schedule_redraw()
+
+    def _create_template_settings(self, parent):
+        """在设置面板中嵌入模版设置区域（列表 + 操作按钮）。"""
+        frame = ttk.LabelFrame(parent, text="模版设置")
+        frame.pack(fill='x', padx=10, pady=(0, 10))
+
+        left = ttk.Frame(frame)
+        left.pack(side='left', fill='both', expand=True, padx=(5,0), pady=5)
+
+        self.template_listbox = tk.Listbox(left, height=6)
+        self.template_listbox.pack(fill='both', expand=True)
+
+        sb = ttk.Scrollbar(left, orient='vertical', command=self.template_listbox.yview)
+        sb.pack(side='right', fill='y')
+        self.template_listbox.config(yscrollcommand=sb.set)
+
+        right = ttk.Frame(frame)
+        right.pack(side='right', fill='y', padx=5, pady=5)
+
+        ttk.Button(right, text='应用', width=12, command=self._template_apply_selected).pack(pady=(0,5))
+        ttk.Button(right, text='保存为模板', width=12, command=self._save_template_dialog).pack(pady=5)
+        ttk.Button(right, text='设为默认', width=12, command=self._template_set_default_selected).pack(pady=5)
+        ttk.Button(right, text='重命名', width=12, command=self._template_rename_selected).pack(pady=5)
+        ttk.Button(right, text='删除', width=12, command=self._template_delete_selected).pack(pady=5)
+        # info area below buttons
+        self._template_info_label = ttk.Label(right, text='', wraplength=160, justify='left', foreground='gray')
+        self._template_info_label.pack(side='bottom', pady=(10,0))
+
+        # refresh list initially
+        try:
+            self._template_refresh_list()
+        except Exception:
+            pass
 
     def _on_rotation_slider(self, value: str):
         """当旋转滑块移动时，更新文本输入框并触发重绘"""
@@ -1033,6 +1157,9 @@ class MainWindow:
         if font_names:
             self.root.after(100, lambda: self._on_font_change())
 
+    # NOTE: template helper methods are placed below so they are class-level
+    # and do not interfere with local variables used inside the tab creation
+    # methods such as `font_frame` and `text_frame`.
         # 字体大小
         size_frame = ttk.Frame(font_frame)
         size_frame.pack(fill='x', padx=10, pady=5)
@@ -1624,6 +1751,27 @@ class MainWindow:
 
                     if selected_font_path:
                         preview_config.config.font_path = selected_font_path
+
+                    # 让时间水印使用界面上选择的颜色和透明度
+                    try:
+                        if hasattr(self, 'color_var'):
+                            preview_config.config.font_color = self.color_var.get()
+                        if hasattr(self, 'alpha_var'):
+                            preview_config.config.font_alpha = float(self.alpha_var.get())
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # 当为文本水印时，让预览使用文本面板的颜色/透明度/字号覆盖
+            try:
+                if preview_config.config.watermark_type == WatermarkType.TEXT:
+                    if hasattr(self, 'text_color_var'):
+                        preview_config.config.text_watermark.font_color = self.text_color_var.get()
+                    if hasattr(self, 'text_alpha_var'):
+                        preview_config.config.text_watermark.font_alpha = float(self.text_alpha_var.get())
+                    if hasattr(self, 'text_font_size_var') and self.text_font_size_var.get():
+                        preview_config.config.text_watermark.font_size = int(self.text_font_size_var.get())
             except Exception:
                 pass
             # 合成水印
@@ -1746,6 +1894,453 @@ class MainWindow:
                     self._init_preview_area()
         except Exception:
             pass
+
+    # ---------------------- Template related UI ----------------------
+    def _apply_config_to_gui(self, wm_config):
+        """Apply a WatermarkConfig object to GUI controls. Best-effort, per-type mapping.
+
+        This restores only the relevant fields for the template's watermark type and
+        avoids contaminating other watermark types (e.g. applying an image template
+        won't leave text content active).
+        """
+        from ..core.config import WatermarkType as _WMT
+
+        # 1) Position and custom pixel coordinates
+        try:
+            if getattr(wm_config, 'position', None) is not None:
+                try:
+                    self.position_var.set(wm_config.position.value)
+                except Exception:
+                    pass
+            cp = getattr(wm_config, 'custom_position', None)
+            if cp:
+                try:
+                    x = int(cp[0]); y = int(cp[1])
+                    self.custom_position = (x, y)
+                    if hasattr(self, 'coord_x_var'):
+                        self.coord_x_var.set(x)
+                    if hasattr(self, 'coord_y_var'):
+                        self.coord_y_var.set(y)
+                    self.position_var.set('custom')
+                except Exception:
+                    pass
+            else:
+                # clear previous custom if template doesn't carry one
+                try:
+                    self.custom_position = None
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 2) Select the correct tab according to watermark_type
+        try:
+            wt = getattr(wm_config, 'watermark_type', None)
+            if wt == _WMT.TIMESTAMP:
+                self.watermark_notebook.select(0)
+            elif wt == _WMT.TEXT:
+                self.watermark_notebook.select(1)
+            elif wt == _WMT.IMAGE:
+                self.watermark_notebook.select(2)
+        except Exception:
+            pass
+
+        # 3) Common fields (color/alpha/font path)
+        try:
+            if hasattr(wm_config, 'font_color') and wm_config.font_color:
+                self.color_var.set(wm_config.font_color)
+            if hasattr(wm_config, 'font_alpha') and wm_config.font_alpha is not None:
+                self.alpha_var.set(wm_config.font_alpha)
+            if hasattr(wm_config, 'font_path') and wm_config.font_path:
+                for f in getattr(self, 'recommended_fonts', []):
+                    if f.get('path') == wm_config.font_path or f.get('name') == getattr(wm_config, 'font_name', None):
+                        self.text_font_var.set(f.get('name'))
+                        break
+        except Exception:
+            pass
+
+        # 4) Text watermark fields (apply but only activate if template is text/timestamp)
+        try:
+            tw = getattr(wm_config, 'text_watermark', None)
+            if tw:
+                if getattr(tw, 'text', None) is not None:
+                    try:
+                        self.text_content_var.set(tw.text)
+                        if hasattr(self, 'text_entry_widget'):
+                            try:
+                                self.text_entry_widget.delete('1.0', tk.END)
+                                self.text_entry_widget.insert('1.0', tw.text)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                if getattr(tw, 'font_size', None):
+                    try:
+                        self.text_font_size_var.set(tw.font_size)
+                    except Exception:
+                        pass
+                if getattr(tw, 'font_color', None):
+                    try:
+                        self.text_color_var.set(tw.font_color)
+                    except Exception:
+                        pass
+                if getattr(tw, 'font_alpha', None) is not None:
+                    try:
+                        self.text_alpha_var.set(tw.font_alpha)
+                    except Exception:
+                        pass
+                try:
+                    self.text_bold_var.set(bool(getattr(tw, 'font_bold', False)))
+                    self.text_italic_var.set(bool(getattr(tw, 'font_italic', False)))
+                    self.shadow_enabled_var.set(bool(getattr(tw, 'shadow_enabled', False)))
+                    self.stroke_enabled_var.set(bool(getattr(tw, 'stroke_enabled', False)))
+                    self.rotation_var.set(str(float(getattr(tw, 'rotation', 0.0))))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 5) Image watermark fields
+        try:
+            iw = getattr(wm_config, 'image_watermark', None)
+            if iw:
+                try:
+                    if getattr(iw, 'image_path', None):
+                        self.image_path_var.set(iw.image_path)
+                except Exception:
+                    pass
+                try:
+                    if getattr(iw, 'scale_mode', None):
+                        self.scale_mode_var.set('percentage' if getattr(iw, 'scale_mode').name.lower() == 'percentage' else 'pixel')
+                    if getattr(iw, 'scale_percentage', None):
+                        self.scale_percentage_var.set(iw.scale_percentage)
+                    if getattr(iw, 'scale_width', None):
+                        self.scale_width_var.set(iw.scale_width)
+                    if getattr(iw, 'scale_height', None):
+                        self.scale_height_var.set(iw.scale_height)
+                    if getattr(iw, 'alpha', None) is not None:
+                        try:
+                            self.image_alpha_var.set(iw.alpha)
+                        except Exception:
+                            pass
+                    self.rotation_var.set(str(float(getattr(iw, 'rotation', 0.0))))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 6) Ensure no cross-contamination: depending on watermark_type, clear the other type's main input
+        try:
+            wt = getattr(wm_config, 'watermark_type', None)
+            if wt == _WMT.TEXT:
+                # ensure image is deselected so preview uses text
+                try:
+                    self.image_path_var.set("")
+                except Exception:
+                    pass
+            elif wt == _WMT.IMAGE:
+                # ensure text is cleared so preview uses image
+                try:
+                    self.text_content_var.set("")
+                    if hasattr(self, 'text_entry_widget'):
+                        try:
+                            self.text_entry_widget.delete('1.0', tk.END)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+            elif wt == _WMT.TIMESTAMP:
+                # clear both text and image so timestamp is used
+                try:
+                    self.text_content_var.set("")
+                    if hasattr(self, 'text_entry_widget'):
+                        try:
+                            self.text_entry_widget.delete('1.0', tk.END)
+                        except Exception:
+                            pass
+                    self.image_path_var.set("")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 7) Timestamp font size (if present)
+        try:
+            if getattr(wm_config, 'font_size', None):
+                try:
+                    self.timestamp_font_size_var.set(wm_config.font_size)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # final redraw to reflect applied template
+        try:
+            self._schedule_redraw()
+        except Exception:
+            pass
+
+    def _on_app_close(self):
+        """Save last session and then quit."""
+        try:
+            wm = self._get_watermark_config()
+            if getattr(self, 'template_manager', None):
+                try:
+                    self.template_manager.save_last_session(wm)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        try:
+            self.root.destroy()
+        except Exception:
+            try:
+                self.root.quit()
+            except Exception:
+                pass
+
+    def _save_template_dialog(self):
+        """Show a simple dialog to name and save the current settings as a template."""
+        if not getattr(self, 'template_manager', None):
+            messagebox.showerror("错误", "模板管理器不可用")
+            return
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("保存为模板")
+        dlg.transient(self.root)
+        dlg.grab_set()
+
+        ttk.Label(dlg, text="模板名称:").grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        name_var = tk.StringVar()
+        ttk.Entry(dlg, textvariable=name_var, width=40).grid(row=0, column=1, padx=10, pady=10)
+
+        ttk.Label(dlg, text="描述 (可选):").grid(row=1, column=0, padx=10, pady=0, sticky='nw')
+        desc_text = tk.Text(dlg, height=4, width=40)
+        desc_text.grid(row=1, column=1, padx=10, pady=5)
+
+        def _on_save():
+            name = name_var.get().strip()
+            if not name:
+                messagebox.showerror("错误", "请输入模板名称")
+                return
+            desc = desc_text.get('1.0', tk.END).strip()
+            try:
+                cfg = self._get_watermark_config()
+                self.template_manager.save_template(name, cfg, desc)
+                # 刷新嵌入式模板列表并选中新保存的模板
+                try:
+                    self._template_refresh_list()
+                    # 选中新保存项
+                    items = self.template_manager.list_templates()
+                    for idx, it in enumerate(items):
+                        if it.get('name') == name:
+                            try:
+                                self.template_listbox.select_clear(0, tk.END)
+                                self.template_listbox.select_set(idx)
+                                self.template_listbox.see(idx)
+                            except Exception:
+                                pass
+                            break
+                except Exception:
+                    pass
+
+                messagebox.showinfo("成功", f"模板 '{name}' 已保存")
+                dlg.destroy()
+            except Exception as e:
+                messagebox.showerror("错误", f"保存模板失败: {e}")
+
+        btn_frame = ttk.Frame(dlg)
+        btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        ttk.Button(btn_frame, text="保存", command=_on_save).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="取消", command=dlg.destroy).pack(side='left', padx=5)
+
+    def _open_template_manager(self):
+        """Open a simple template manager window to list/apply/delete templates."""
+        if not getattr(self, 'template_manager', None):
+            messagebox.showerror("错误", "模板管理器不可用")
+            return
+
+        mgr = tk.Toplevel(self.root)
+        mgr.title("模板管理器")
+        mgr.geometry('600x400')
+        mgr.transient(self.root)
+
+        listbox = tk.Listbox(mgr)
+        listbox.pack(side='left', fill='both', expand=True, padx=(10,0), pady=10)
+
+        scrollbar = ttk.Scrollbar(mgr, orient='vertical', command=listbox.yview)
+        scrollbar.pack(side='left', fill='y', pady=10)
+        listbox.config(yscrollcommand=scrollbar.set)
+
+        meta_frame = ttk.Frame(mgr)
+        meta_frame.pack(side='right', fill='both', expand=True, padx=10, pady=10)
+
+        info_label = ttk.Label(meta_frame, text='选择模板以查看信息')
+        info_label.pack(anchor='nw')
+
+        def _refresh_list():
+            listbox.delete(0, tk.END)
+            for item in self.template_manager.list_templates():
+                label = f"{item['name']}    ({item.get('modified_at') or ''})"
+                listbox.insert(tk.END, label)
+
+        def _on_select(evt=None):
+            sel = listbox.curselection()
+            if not sel:
+                return
+            idx = sel[0]
+            items = self.template_manager.list_templates()
+            if idx >= len(items):
+                return
+            item = items[idx]
+            info_text = f"名称: {item['name']}\n修改时间: {item.get('modified_at')}\n描述: {item.get('description','')}\n路径: {item.get('path')}"
+            info_label.config(text=info_text)
+            # also update embedded panel info if present
+            try:
+                if hasattr(self, '_template_info_label'):
+                    self._template_info_label.config(text=f"{item.get('description','')}\n{item.get('modified_at','')}")
+            except Exception:
+                pass
+
+        def _apply_selected():
+            sel = listbox.curselection()
+            if not sel:
+                return
+            idx = sel[0]
+            items = self.template_manager.list_templates()
+            item = items[idx]
+            try:
+                cfg = self.template_manager.load_template(item['name'])
+                self._apply_config_to_gui(cfg)
+                messagebox.showinfo('提示', f"模板 '{item['name']}' 已应用")
+            except Exception as e:
+                messagebox.showerror('错误', f"加载模板失败: {e}")
+
+        def _delete_selected():
+            sel = listbox.curselection()
+            if not sel:
+                return
+            idx = sel[0]
+            items = self.template_manager.list_templates()
+            item = items[idx]
+            if messagebox.askyesno('确认', f"确定删除模板 '{item['name']}' ?"):
+                try:
+                    self.template_manager.delete_template(item['name'])
+                    _refresh_list()
+                except Exception as e:
+                    messagebox.showerror('错误', f"删除失败: {e}")
+
+        btn_apply = ttk.Button(meta_frame, text='应用', command=_apply_selected)
+        btn_apply.pack(fill='x', pady=(10, 2))
+        btn_delete = ttk.Button(meta_frame, text='删除', command=_delete_selected)
+        btn_delete.pack(fill='x', pady=2)
+        btn_close = ttk.Button(meta_frame, text='关闭', command=mgr.destroy)
+        btn_close.pack(side='bottom', pady=5)
+
+        listbox.bind('<<ListboxSelect>>', _on_select)
+        _refresh_list()
+
+    # Embedded template UI helpers (used by 左侧设置面板中的模版设置)
+    def _template_refresh_list(self):
+        if not getattr(self, 'template_manager', None):
+            return
+        try:
+            self.template_listbox.delete(0, tk.END)
+            for item in self.template_manager.list_templates():
+                # Show only date portion for modified time to avoid long ISO timestamps
+                mod = item.get('modified_at') or ''
+                mod_display = ''
+                if mod:
+                    try:
+                        mod_display = mod.split('T')[0]
+                    except Exception:
+                        mod_display = mod
+                label = f"{item['name']}" + (f"    ({mod_display})" if mod_display else '')
+                self.template_listbox.insert(tk.END, label)
+        except Exception:
+            pass
+
+    def _template_apply_selected(self):
+        if not getattr(self, 'template_manager', None):
+            messagebox.showerror('错误', '模板管理器不可用')
+            return
+        sel = self.template_listbox.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        items = self.template_manager.list_templates()
+        if idx >= len(items):
+            return
+        item = items[idx]
+        try:
+            cfg = self.template_manager.load_template(item['name'])
+            self._apply_config_to_gui(cfg)
+            messagebox.showinfo('提示', f"模板 '{item['name']}' 已应用")
+        except Exception as e:
+            messagebox.showerror('错误', f"加载模板失败: {e}")
+
+    def _template_delete_selected(self):
+        if not getattr(self, 'template_manager', None):
+            return
+        sel = self.template_listbox.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        items = self.template_manager.list_templates()
+        if idx >= len(items):
+            return
+        item = items[idx]
+        if messagebox.askyesno('确认', f"确定删除模板 '{item['name']}' ?"):
+            try:
+                self.template_manager.delete_template(item['name'])
+                self._template_refresh_list()
+            except Exception as e:
+                messagebox.showerror('错误', f"删除失败: {e}")
+
+    def _template_rename_selected(self):
+        if not getattr(self, 'template_manager', None):
+            return
+        sel = self.template_listbox.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        items = self.template_manager.list_templates()
+        if idx >= len(items):
+            return
+        item = items[idx]
+        new_name = simpledialog.askstring('重命名', '输入新模板名:', initialvalue=item['name'], parent=self.root)
+        if not new_name:
+            return
+        try:
+            self.template_manager.rename_template(item['name'], new_name)
+            self._template_refresh_list()
+        except Exception as e:
+            messagebox.showerror('错误', f"重命名失败: {e}")
+
+    def _template_set_default_selected(self):
+        """将选中的模板设为默认模板"""
+        if not getattr(self, 'template_manager', None):
+            messagebox.showerror('错误', '模板管理器不可用')
+            return
+        sel = self.template_listbox.curselection()
+        if not sel:
+            messagebox.showinfo('提示', '请先选择一个模板')
+            return
+        idx = sel[0]
+        items = self.template_manager.list_templates()
+        if idx >= len(items):
+            return
+        item = items[idx]
+        try:
+            self.template_manager.set_default_template(item['name'])
+            messagebox.showinfo('提示', f"模板 '{item['name']}' 已设为默认")
+            # refresh list to reflect any visual marker for default
+            try:
+                self._template_refresh_list()
+            except Exception:
+                pass
+        except Exception as e:
+            messagebox.showerror('错误', f"设为默认失败: {e}")
 
     def _show_watermark_settings(self):
         """显示水印高级设置"""
