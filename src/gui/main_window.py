@@ -46,6 +46,9 @@ class MainWindow:
         self._position_buttons = {}
         # 保存最近一次预览的显示信息（用于坐标映射）
         self._last_preview_info = None
+        # 拖拽状态
+        self._dragging = False
+        self._drag_offset = (0, 0)
         
         # 设置窗口
         self._setup_window()
@@ -740,6 +743,18 @@ class MainWindow:
         if hasattr(self, 'custom_position') and self.custom_position is not None:
             watermark_config.custom_position = self.custom_position
 
+        # 写入旋转角度到文本水印配置（时间水印和文本水印共享rotation字段）
+        try:
+            rot_val = int(self.rotation_var.get()) if hasattr(self, 'rotation_var') else 0
+        except Exception:
+            rot_val = 0
+
+        try:
+            if watermark_config.text_watermark is not None:
+                watermark_config.text_watermark.rotation = float(rot_val)
+        except Exception:
+            pass
+
         return watermark_config
 
     def _get_export_config(self) -> dict:
@@ -937,6 +952,16 @@ class MainWindow:
         ts_size_entry = ttk.Entry(timestamp_frame, textvariable=self.timestamp_font_size_var, width=8)
         ts_size_entry.pack(anchor='w', padx=10, pady=(0, 10))
         self.timestamp_font_size_var.trace_add('write', lambda *args: self._schedule_redraw())
+
+        # 旋转控制（时间水印/文本水印可共享）
+        ttk.Label(timestamp_frame, text="旋转角度 (°):").pack(anchor='w', padx=10, pady=(0, 0))
+        self.rotation_var = tk.IntVar(value=0)
+        rotation_frame = ttk.Frame(timestamp_frame)
+        rotation_frame.pack(fill='x', padx=10, pady=(0, 10))
+        rotation_slider = ttk.Scale(rotation_frame, from_=-180, to=180, variable=self.rotation_var, orient='horizontal', command=lambda v: self._schedule_redraw())
+        rotation_slider.pack(side='left', fill='x', expand=True)
+        rotation_entry = ttk.Entry(rotation_frame, textvariable=self.rotation_var, width=6)
+        rotation_entry.pack(side='right', padx=(5, 0))
 
         self._schedule_redraw()
     
@@ -1139,6 +1164,8 @@ class MainWindow:
             width=8
         ).pack(side='right', padx=(5, 0))
         self.image_path_var.trace_add('write', lambda *args: self._schedule_redraw())
+        
+        # (rotation mapping handled when building watermark_config)
 
         # 缩放设置
         scale_frame = ttk.LabelFrame(image_frame, text="尺寸设置")
@@ -1331,6 +1358,77 @@ class MainWindow:
             self._schedule_redraw()
         except Exception:
             pass
+
+    def _on_preview_mouse_down(self, event):
+        """鼠标按下：若点击在水印上则开始拖拽，否则作为点击设置坐标"""
+        try:
+            info = self._last_preview_info
+            if not info:
+                return
+
+            # 判断是否点击在计算出的水印区域（canvas坐标）
+            wm_box = info.get('watermark_box')
+            if wm_box:
+                wx, wy, ww, wh = wm_box
+                if wx <= event.x <= wx + ww and wy <= event.y <= wy + wh:
+                    # 在水印上，开始拖拽
+                    self._dragging = True
+                    self._drag_offset = (event.x - wx, event.y - wy)
+                    return
+
+            # 否则作为普通点击设置坐标
+            self._on_preview_click(event)
+        except Exception:
+            pass
+
+    def _on_preview_mouse_move(self, event):
+        """鼠标移动（拖拽）: 实时更新自定义位置并刷新预览"""
+        try:
+            if not self._dragging:
+                return
+            info = self._last_preview_info
+            if not info:
+                return
+
+            img_left, img_top, img_w, img_h = info['img_box']
+            orig_w = info.get('orig_width')
+            orig_h = info.get('orig_height')
+
+            # 计算新的水印左上角（canvas坐标）
+            offset_x, offset_y = self._drag_offset
+            new_left = event.x - offset_x
+            new_top = event.y - offset_y
+
+            # 限制在图片区域内
+            new_left = max(img_left, min(new_left, img_left + img_w))
+            new_top = max(img_top, min(new_top, img_top + img_h))
+
+            # 转换为相对并映射回原图像像素
+            rel_x = (new_left - img_left) / img_w
+            rel_y = (new_top - img_top) / img_h
+            px = int(rel_x * orig_w)
+            py = int(rel_y * orig_h)
+
+            # 更新自定义位置和输入框
+            self.custom_position = (px, py)
+            self.coord_x_var.set(px)
+            self.coord_y_var.set(py)
+            self.position_var.set('custom')
+
+            # 实时刷新预览（直接调用以获得更即时反馈）
+            self._update_preview_image(self.thumbnail_list.get_selected_files())
+        except Exception:
+            pass
+
+    def _on_preview_mouse_up(self, event):
+        """结束拖拽"""
+        try:
+            if self._dragging:
+                self._dragging = False
+                # 最终刷新
+                self._schedule_redraw()
+        except Exception:
+            pass
     
     def _on_shadow_toggle(self):
         """阴影效果开关切换"""
@@ -1447,8 +1545,10 @@ class MainWindow:
         )
         # 绑定画布尺寸变化，重绘当前预览
         self.preview_canvas.bind('<Configure>', lambda e: self._schedule_redraw())
-        # 绑定点击事件，允许用户点击设置自定义坐标
-        self.preview_canvas.bind('<Button-1>', self._on_preview_click)
+        # 绑定点击和拖拽事件，允许用户点击或拖拽设置自定义坐标
+        self.preview_canvas.bind('<Button-1>', self._on_preview_mouse_down)
+        self.preview_canvas.bind('<B1-Motion>', self._on_preview_mouse_move)
+        self.preview_canvas.bind('<ButtonRelease-1>', self._on_preview_mouse_up)
 
     def _schedule_redraw(self, delay: int = 200):
         """防抖调度重绘，delay 单位毫秒。
@@ -1517,7 +1617,12 @@ class MainWindow:
             elif wm_type == WatermarkType.TEXT:
                 text_for_watermark = preview_config.config.text_watermark.text
 
-            watermarked_img = processor.watermark_processor.process_watermark(img, text_for_watermark)
+            # 使用 preview_with_bbox 获取水印包围盒以便在预览中做交互
+            try:
+                watermarked_img, wm_bbox = processor.watermark_processor.preview_with_bbox(img, text_for_watermark)
+            except Exception:
+                watermarked_img = processor.watermark_processor.process_watermark(img, text_for_watermark)
+                wm_bbox = None
 
             # 缩放到预览区域
             canvas_w = max(10, self.preview_canvas.winfo_width())
@@ -1545,6 +1650,22 @@ class MainWindow:
                 'orig_width': watermarked_img.width,
                 'orig_height': watermarked_img.height,
             }
+            # 如果有水印包围盒（基于原始图片像素），将其映射到canvas上的显示坐标
+            try:
+                if wm_bbox:
+                    wm_left, wm_top, wm_w, wm_h = wm_bbox
+                    # 计算缩放因子（preview_img 相对于 watermarked_img 的缩放）
+                    scale_x = preview_img.width / watermarked_img.width
+                    scale_y = preview_img.height / watermarked_img.height
+                    canvas_wm_left = img_left + int(wm_left * scale_x)
+                    canvas_wm_top = img_top + int(wm_top * scale_y)
+                    canvas_wm_w = int(wm_w * scale_x)
+                    canvas_wm_h = int(wm_h * scale_y)
+                    self._last_preview_info['watermark_box'] = (canvas_wm_left, canvas_wm_top, canvas_wm_w, canvas_wm_h)
+                else:
+                    self._last_preview_info['watermark_box'] = None
+            except Exception:
+                self._last_preview_info['watermark_box'] = None
             self.preview_canvas.create_image(
                 img_left, img_top,
                 image=self._preview_img_tk,

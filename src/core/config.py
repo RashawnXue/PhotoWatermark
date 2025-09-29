@@ -71,6 +71,8 @@ class TextWatermarkConfig:
     stroke_enabled: bool = False
     stroke_color: str = "black"
     stroke_width: int = 1
+    # 旋转角度（以度为单位，支持负值 -180..180）
+    rotation: float = 0.0
 
 
 @dataclass
