@@ -153,3 +153,40 @@ class TemplateManager:
             return WatermarkConfig.from_dict(data)
         except Exception:
             return None
+
+    # default template handling
+    def _default_template_path(self) -> str:
+        return os.path.join(self.config_dir, 'default_template.txt')
+
+    def set_default_template(self, name: str) -> None:
+        """Mark a template name as the default for startup.
+
+        This writes a small text file containing the template name.
+        """
+        path = self._default_template_path()
+        tmp = path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            f.write(name)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+
+    def get_default_template_name(self) -> Optional[str]:
+        path = self._default_template_path()
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                name = f.read().strip()
+            return name or None
+        except Exception:
+            return None
+
+    def load_default_template(self) -> Optional[WatermarkConfig]:
+        name = self.get_default_template_name()
+        if not name:
+            return None
+        try:
+            return self.load_template(name)
+        except Exception:
+            return None
