@@ -7,7 +7,7 @@ PhotoWatermark GUI应用的主界面。
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 try:
     from tkinterdnd2 import TkinterDnD
@@ -40,6 +40,12 @@ class MainWindow:
         self.file_manager = FileManager()
         self.config = Config()
         self.image_processor = None
+        # 当前自定义坐标（像素，基于原始图片尺寸）
+        self.custom_position: Optional[Tuple[int, int]] = None
+        # 按钮引用用于高亮当前预设位置
+        self._position_buttons = {}
+        # 保存最近一次预览的显示信息（用于坐标映射）
+        self._last_preview_info = None
         
         # 设置窗口
         self._setup_window()
@@ -700,9 +706,16 @@ class MainWindow:
             alpha=self.image_alpha_var.get() if hasattr(self, 'image_alpha_var') else 0.8
         )
 
-        # 解析位置
+        # 解析位置（如果用户选择了自定义坐标，Position(...) 可能会抛出异常）
         position_str = self.position_var.get()
-        position = Position(position_str)
+        try:
+            position = Position(position_str)
+        except Exception:
+            # 允许非枚举的中间状态（例如 'custom'），在这种情况下保留现有配置或使用默认
+            try:
+                position = self.config.config.position
+            except Exception:
+                position = Position.BOTTOM_RIGHT
 
         # 决定时间水印的字体大小来源（时间水印使用 timestamp_font_size_var）
         chosen_font_size = None
@@ -722,6 +735,10 @@ class MainWindow:
             text_watermark=text_watermark,
             image_watermark=image_watermark
         )
+
+        # 如果用户设置了自定义像素坐标，则将其写入配置，后端会优先使用 custom_position
+        if hasattr(self, 'custom_position') and self.custom_position is not None:
+            watermark_config.custom_position = self.custom_position
 
         return watermark_config
 
@@ -1186,6 +1203,103 @@ class MainWindow:
         position_combo.pack(fill='x', padx=10, pady=(0, 10))
         # 位置选择变化时刷新预览
         position_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
+
+        # 增加九宫格预设按钮（便捷一键定位）
+        presets_frame = ttk.Frame(position_frame)
+        presets_frame.pack(fill='x', padx=10, pady=(5, 5))
+
+        from ..core.config import Position as _PositionEnum
+
+        btn_map = [
+            (_PositionEnum.TOP_LEFT, 'TL'), (_PositionEnum.TOP_CENTER, 'TC'), (_PositionEnum.TOP_RIGHT, 'TR'),
+            (_PositionEnum.CENTER_LEFT, 'ML'), (_PositionEnum.CENTER, 'MC'), (_PositionEnum.CENTER_RIGHT, 'MR'),
+            (_PositionEnum.BOTTOM_LEFT, 'BL'), (_PositionEnum.BOTTOM_CENTER, 'BC'), (_PositionEnum.BOTTOM_RIGHT, 'BR')
+        ]
+
+        for i, (pos_enum, label) in enumerate(btn_map):
+            r = i // 3
+            c = i % 3
+            btn = ttk.Button(presets_frame, text=label, width=6,
+                             command=lambda p=pos_enum: self._set_preset_position(p))
+            btn.grid(row=r, column=c, padx=3, pady=3)
+            self._position_buttons[pos_enum] = btn
+
+        # 坐标输入（像素）
+        coord_frame = ttk.Frame(position_frame)
+        coord_frame.pack(fill='x', padx=10, pady=(5, 10))
+        ttk.Label(coord_frame, text="坐标 (px):").pack(side='left')
+        self.coord_x_var = tk.IntVar(value=0)
+        self.coord_y_var = tk.IntVar(value=0)
+        ttk.Entry(coord_frame, textvariable=self.coord_x_var, width=8).pack(side='left', padx=(5,2))
+        ttk.Label(coord_frame, text="x").pack(side='left', padx=(0,3))
+        ttk.Entry(coord_frame, textvariable=self.coord_y_var, width=8).pack(side='left', padx=(2,5))
+        ttk.Button(coord_frame, text="应用坐标", command=self._apply_manual_coordinates).pack(side='left')
+
+        # 点击预览设置坐标的提示
+        ttk.Label(position_frame, text="提示: 点击预览图片可设置自定义坐标。", font=('Arial', 8), foreground='gray').pack(anchor='w', padx=10)
+
+    def _set_preset_position(self, pos_enum):
+        """设置预设位置（九宫格按钮回调）"""
+        try:
+            # 更新配置中的位置并清除自定义坐标
+            self.position_var.set(pos_enum.value)
+            self.custom_position = None
+            # 高亮选中按钮
+            for p, btn in self._position_buttons.items():
+                if p == pos_enum:
+                    btn.state(['pressed'])
+                else:
+                    btn.state(['!pressed'])
+            self._schedule_redraw()
+        except Exception:
+            pass
+
+    def _apply_manual_coordinates(self):
+        """应用手动输入的坐标到自定义位置"""
+        try:
+            x = int(self.coord_x_var.get())
+            y = int(self.coord_y_var.get())
+            self.custom_position = (x, y)
+            self._schedule_redraw()
+        except Exception:
+            messagebox.showerror("错误", "请输入有效的整数坐标")
+
+    def _on_preview_click(self, event):
+        """用户点击预览画布时，将画布坐标映射为原图像像素坐标并设置为自定义位置"""
+        try:
+            if not self._preview_img_tk:
+                return
+        except Exception:
+            return
+
+        # 获取当前预view image geometry
+        try:
+            info = self._last_preview_info
+            if not info:
+                # no mapping info available
+                return
+            img_x, img_y, img_w, img_h = info['img_box']  # (left, top, width, height)
+            canvas_x = event.x
+            canvas_y = event.y
+            # 判断是否点击在图片区域
+            if not (img_x <= canvas_x <= img_x + img_w and img_y <= canvas_y <= img_y + img_h):
+                return
+            # 计算在图片内的相对坐标
+            rel_x = (canvas_x - img_x) / img_w
+            rel_y = (canvas_y - img_y) / img_h
+            # 映射回原始图片像素尺寸
+            orig_w = info.get('orig_width')
+            orig_h = info.get('orig_height')
+            px = int(rel_x * orig_w)
+            py = int(rel_y * orig_h)
+            self.custom_position = (px, py)
+            # 更新坐标输入框
+            self.coord_x_var.set(px)
+            self.coord_y_var.set(py)
+            self.position_var.set('custom')
+            self._schedule_redraw()
+        except Exception:
+            pass
     
     def _on_shadow_toggle(self):
         """阴影效果开关切换"""
@@ -1302,6 +1416,8 @@ class MainWindow:
         )
         # 绑定画布尺寸变化，重绘当前预览
         self.preview_canvas.bind('<Configure>', lambda e: self._schedule_redraw())
+        # 绑定点击事件，允许用户点击设置自定义坐标
+        self.preview_canvas.bind('<Button-1>', self._on_preview_click)
 
     def _schedule_redraw(self, delay: int = 200):
         """防抖调度重绘，delay 单位毫秒。
@@ -1390,10 +1506,18 @@ class MainWindow:
 
             self._preview_img_tk = ImageTk.PhotoImage(preview_img)
             self.preview_canvas.delete('all')
+            # 计算图片在画布上的显示位置，以便映射点击坐标到原图像像素
+            img_left = (canvas_w - preview_img.width) // 2
+            img_top = (canvas_h - preview_img.height) // 2
+            self._last_preview_info = {
+                'img_box': (img_left, img_top, preview_img.width, preview_img.height),
+                'orig_width': watermarked_img.width,
+                'orig_height': watermarked_img.height,
+            }
             self.preview_canvas.create_image(
-                canvas_w//2, canvas_h//2,
+                img_left, img_top,
                 image=self._preview_img_tk,
-                anchor='center'
+                anchor='nw'
             )
         except Exception as e:
             # 如果是因为字体大小输入非法（非数字）导致的错误，给出友好提示
