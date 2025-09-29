@@ -1233,16 +1233,16 @@ class MainWindow:
         from ..core.config import Position as _PositionEnum
 
         btn_map = [
-            (_PositionEnum.TOP_LEFT, 'TL'), (_PositionEnum.TOP_CENTER, 'TC'), (_PositionEnum.TOP_RIGHT, 'TR'),
-            (_PositionEnum.CENTER_LEFT, 'ML'), (_PositionEnum.CENTER, 'MC'), (_PositionEnum.CENTER_RIGHT, 'MR'),
-            (_PositionEnum.BOTTOM_LEFT, 'BL'), (_PositionEnum.BOTTOM_CENTER, 'BC'), (_PositionEnum.BOTTOM_RIGHT, 'BR')
+            (_PositionEnum.TOP_LEFT, '左上'), (_PositionEnum.TOP_CENTER, '顶部居中'), (_PositionEnum.TOP_RIGHT, '右上'),
+            (_PositionEnum.CENTER_LEFT, '左中'), (_PositionEnum.CENTER, '居中'), (_PositionEnum.CENTER_RIGHT, '右中'),
+            (_PositionEnum.BOTTOM_LEFT, '左下'), (_PositionEnum.BOTTOM_CENTER, '底部居中'), (_PositionEnum.BOTTOM_RIGHT, '右下')
         ]
 
         for i, (pos_enum, label) in enumerate(btn_map):
             r = i // 3
             c = i % 3
-            btn = ttk.Button(presets_frame, text=label, width=6,
-                             command=lambda p=pos_enum: self._set_preset_position(p))
+            btn = ttk.Button(presets_frame, text=label, width=8,
+                             command=lambda p=pos_enum, l=label: self._set_preset_position(p, l))
             btn.grid(row=r, column=c, padx=3, pady=3)
             self._position_buttons[pos_enum] = btn
 
@@ -1260,18 +1260,27 @@ class MainWindow:
         # 点击预览设置坐标的提示
         ttk.Label(position_frame, text="提示: 点击预览图片可设置自定义坐标。", font=('Arial', 8), foreground='gray').pack(anchor='w', padx=10)
 
-    def _set_preset_position(self, pos_enum):
-        """设置预设位置（九宫格按钮回调）"""
+    def _set_preset_position(self, pos_enum, display_label=None):
+        """设置预设位置（九宫格按钮回调）
+        pos_enum: Position enum
+        display_label: 中文显示标签（可选），用于同步 combobox
+        """
         try:
             # 更新配置中的位置并清除自定义坐标
             self.position_var.set(pos_enum.value)
             self.custom_position = None
-            # 高亮选中按钮
+            # 同步显示标签（如果有）
+            if display_label and hasattr(self, 'position_display_var'):
+                self.position_display_var.set(display_label)
+            # 高亮选中按钮（样式）
             for p, btn in self._position_buttons.items():
-                if p == pos_enum:
-                    btn.state(['pressed'])
-                else:
-                    btn.state(['!pressed'])
+                try:
+                    if p == pos_enum:
+                        btn.state(['pressed'])
+                    else:
+                        btn.state(['!pressed'])
+                except Exception:
+                    pass
             self._schedule_redraw()
         except Exception:
             pass
