@@ -1,20 +1,35 @@
-# PhotoWatermark - 基于EXIF拍摄时间的图片水印工具
+# PhotoWatermark - 专业图片水印工具
 
-一个强大的图片水印工具，能够自动读取图片的EXIF信息中的拍摄时间，并将其作为水印添加到图片上。提供命令行界面和图形用户界面两种使用方式，支持批量处理、多种样式配置和预览功能。
+一个功能强大的图片水印工具，支持多种水印类型和丰富的自定义选项。提供命令行界面和现代化图形用户界面，支持实时预览、批量处理、模板管理等专业功能。
 
 ## ✨ 特性
 
-### 核心功能
-- 🕐 **自动提取拍摄时间**: 从图片EXIF信息中自动提取拍摄日期
-- 🎨 **丰富的样式选项**: 支持字体大小、颜色、透明度、位置等自定义设置
-- 📁 **批量处理**: 支持单张图片或整个目录的批量处理
-- 🔍 **预览功能**: 在实际处理前预览水印效果
-- ⚙️ **配置文件**: 支持保存和加载自定义配置
-- 📊 **进度显示**: 清晰的处理进度和统计信息
+### 🎯 多种水印类型
+- 📅 **EXIF时间水印**: 自动提取图片EXIF信息中的拍摄时间
+- 📝 **自定义文本水印**: 任意文本内容，支持多行文本和特殊字符
+- 🖼️ **图片水印**: 支持Logo、图标等图片水印，可调整大小和透明度
 
-### 界面选择
+### 🎨 丰富的样式选项
+- 🔤 **字体控制**: 系统字体选择、大小调节、粗体/斜体样式
+- 🎨 **颜色设置**: 字体颜色、透明度、阴影效果、描边效果
+- 📍 **位置控制**: 九宫格预设位置、自定义坐标、边距调节
+- 🔄 **旋转功能**: 任意角度旋转，实时预览效果
+
+### 🖥️ 现代化界面
+- 🎯 **实时预览**: 参数调整即时显示效果，支持多图片切换预览
+- 🖱️ **拖拽操作**: 直接拖拽文件导入，预览窗口内拖拽定位水印
+- 📱 **响应式布局**: 自适应窗口大小，支持缩放和滚动
+- 🎛️ **直观控制**: 滑块、颜色选择器、实时坐标显示
+
+### ⚙️ 专业功能
+- 💾 **模板管理**: 保存/加载水印配置模板，快速应用预设样式
+- 📁 **批量处理**: 支持整个目录的批量处理，递归子目录
+- 📊 **进度显示**: 详细的处理进度和统计信息
+- 🔧 **配置持久化**: 自动保存上次会话设置，程序重启恢复状态
+
+### 💻 双重界面
+- 🖥️ **图形用户界面**: 直观的拖拽操作和可视化设置（推荐）
 - 💻 **命令行界面**: 适合批量处理和自动化脚本
-- 🖥️ **图形用户界面**: 直观的拖拽操作和可视化设置
 - 🌈 **友好交互**: 彩色终端输出和现代化GUI设计
 
 ## 📦 安装
@@ -52,14 +67,18 @@ python gui_main.py
 **GUI功能特性：**
 - 📂 **拖拽导入**: 直接拖拽图片文件或文件夹到应用窗口
 - 🖼️ **缩略图预览**: 网格或列表视图显示导入的图片
+- 👁️ **实时预览**: 水印效果实时显示，支持多图片切换预览
+- 🖱️ **交互式定位**: 在预览窗口内直接拖拽水印到目标位置
 - ⚙️ **可视化设置**: 直观的水印参数配置界面
+- 🎨 **多种水印类型**: 支持时间、文本、图片三种水印类型
+- 💾 **模板管理**: 保存和加载水印配置模板
 - 📤 **灵活导出**: 自定义输出目录、文件命名和格式
 - 📊 **实时进度**: 处理进度条和状态显示
 
 ### 💻 命令行版本
 
 ```bash
-# 处理单张图片
+# 处理单张图片（默认EXIF时间水印）
 python main.py /path/to/photo.jpg
 
 # 处理整个目录
@@ -67,6 +86,19 @@ python main.py /path/to/photos
 
 # 递归处理子目录
 python main.py /path/to/photos --recursive
+```
+
+### 多种水印类型
+
+```bash
+# EXIF时间水印（默认）
+python main.py /path/to/photos --watermark-type timestamp
+
+# 自定义文本水印
+python main.py /path/to/photos --watermark-type text --text "© 2024 My Photos"
+
+# 图片水印
+python main.py /path/to/photos --watermark-type image --image-path /path/to/logo.png
 ```
 
 ### 自定义样式
@@ -80,6 +112,9 @@ python main.py /path/to/photos -s 32 -a 0.7
 
 # 设置边距和日期格式
 python main.py /path/to/photos -m 30 -f "DD MMM YYYY"
+
+# 添加阴影和描边效果
+python main.py /path/to/photos --shadow --stroke-width 2 --stroke-color black
 ```
 
 ### 预览模式
@@ -92,8 +127,8 @@ python main.py /path/to/photos --preview
 ### 使用配置文件
 
 ```bash
-# 使用预定义配置
-python main.py /path/to/photos --config photo_watermark/templates/elegant_config.json
+# 使用预定义配置模板
+python main.py /path/to/photos --config src/templates/elegant_config.json
 
 # 保存当前配置
 python main.py /path/to/photos -c white -s 24 --save-config my_config.json
@@ -114,24 +149,36 @@ python gui_main.py
    - 点击"选择文件"或"选择文件夹"按钮
    - 支持批量导入和递归子目录
 
-2. **预览和选择**
-   - 在"图片列表"标签页查看缩略图
-   - 切换网格视图或列表视图
-   - 选择要处理的图片（默认处理全部）
+2. **选择水印类型**
+   - **时间水印**: 自动提取EXIF拍摄时间
+   - **文本水印**: 输入自定义文本内容
+   - **图片水印**: 选择Logo或图标文件
 
-3. **配置水印**
-   - 在左侧设置面板调整基本参数
-   - 字体颜色、位置、透明度等
-   - 点击"高级设置"进行更多配置
+3. **预览和调整**
+   - 在"预览"标签页实时查看水印效果
+   - 支持多图片切换预览
+   - 直接在预览窗口拖拽调整水印位置
+   - 使用九宫格快速定位或精确坐标输入
 
-4. **导出设置**
+4. **样式配置**
+   - **字体设置**: 字体、大小、粗体/斜体
+   - **颜色效果**: 字体颜色、透明度、阴影、描边
+   - **位置控制**: 预设位置或自定义坐标
+   - **旋转角度**: 任意角度旋转水印
+
+5. **模板管理**
+   - 保存当前配置为模板以便复用
+   - 加载预设模板或自定义模板
+   - 程序自动保存上次会话设置
+
+6. **导出设置**
    - 点击"导出图片"按钮
    - 选择输出目录（不能与原图目录相同）
    - 设置文件命名规则（原名/前缀/后缀）
    - 选择输出格式（JPEG/PNG）
    - 调整图片质量和尺寸
 
-5. **开始处理**
+7. **开始处理**
    - 点击"导出"开始处理
    - 查看实时进度和状态
    - 处理完成后查看结果统计
@@ -140,8 +187,10 @@ python gui_main.py
 - `Ctrl+O`: 导入文件
 - `Ctrl+Shift+O`: 导入文件夹
 - `Ctrl+E`: 导出图片
+- `Ctrl+S`: 保存模板
+- `Ctrl+L`: 加载模板
 - `Ctrl+A`: 全选图片
-- `Ctrl+L`: 清空列表
+- `Ctrl+D`: 清空列表
 - `Ctrl+Q`: 退出应用
 
 ### 💻 命令行参数
@@ -152,24 +201,45 @@ python main.py [OPTIONS] INPUT_PATH
 参数:
   INPUT_PATH                    输入图片文件或目录路径
 
-选项:
+基本选项:
   -o, --output DIR             输出目录 (默认: INPUT_PATH_watermark)
+  --watermark-type CHOICE      水印类型: timestamp|text|image (默认: timestamp)
+  --recursive                  递归处理子目录
+  --preview                    预览模式，不保存文件
+  -v, --verbose                详细输出
+  --help                       显示帮助信息
+
+文本水印选项:
+  --text TEXT                  自定义文本内容 (用于text类型)
   -s, --font-size INT          字体大小 (默认: 自适应图片尺寸)
   -c, --color TEXT             字体颜色 (默认: white)
   -a, --alpha FLOAT            透明度 0.0-1.0 (默认: 0.8)
+  --font-path PATH             自定义字体文件路径
+  --bold                       粗体字体
+  --italic                     斜体字体
+  --shadow                     启用阴影效果
+  --shadow-color TEXT          阴影颜色 (默认: black)
+  --stroke-width INT           描边宽度 (默认: 0)
+  --stroke-color TEXT          描边颜色 (默认: black)
+
+图片水印选项:
+  --image-path PATH            水印图片路径 (用于image类型)
+  --scale-mode CHOICE          缩放模式: percentage|fixed_size (默认: percentage)
+  --scale-percentage FLOAT     缩放百分比 0.1-2.0 (默认: 0.1)
+
+位置和旋转选项:
   -p, --position CHOICE        水印位置 (默认: bottom-right)
   -m, --margin INT             边距像素 (默认: 20)
-  -f, --format CHOICE          日期格式 (默认: YYYY-MM-DD)
-  --font-path PATH             自定义字体文件路径
+  --rotation FLOAT             旋转角度 -180到180 (默认: 0)
+
+输出选项:
   --output-format [JPEG|PNG]   输出图片格式 (默认: JPEG)
   --quality INT                JPEG输出质量 1-100 (默认: 95)
-  --recursive                  递归处理子目录
-  --preview                    预览模式，不保存文件
+
+配置管理:
   --config FILE                使用配置文件
   --save-config FILE           保存当前配置到文件
-  -v, --verbose                详细输出
-  --no-banner                  不显示程序横幅
-  --help                       显示帮助信息
+  -f, --format CHOICE          日期格式 (默认: YYYY-MM-DD, 仅timestamp类型)
 ```
 
 ### 水印位置选项
@@ -200,47 +270,80 @@ python main.py [OPTIONS] INPUT_PATH
 - **RGB格式**: rgb(255,0,0), RGB(255, 0, 0)
 - **逗号分隔**: 255,0,0
 
+### 水印类型说明
+
+#### 📅 时间水印 (timestamp)
+- 自动提取图片EXIF信息中的拍摄时间
+- 支持多种日期格式显示
+- 适用于有EXIF信息的JPEG和TIFF图片
+
+#### 📝 文本水印 (text)
+- 支持任意自定义文本内容
+- 支持多行文本（换行符分隔）
+- 丰富的字体样式选择
+- 阴影和描边效果增强可读性
+
+#### 🖼️ 图片水印 (image)
+- 支持PNG、JPEG等常见图片格式
+- 自动处理透明背景
+- 灵活的缩放模式
+- 支持旋转和翻转效果
+
 ## 📁 项目结构
 
 ```
 PhotoWatermark/
-├── photo_watermark/           # 主程序包
+├── src/                       # 主程序包
 │   ├── core/                  # 核心功能模块
-│   │   ├── config.py          # 配置管理
+│   │   ├── config.py          # 配置管理和数据模型
 │   │   ├── exif_reader.py     # EXIF信息读取
-│   │   ├── watermark.py       # 水印处理
-│   │   └── image_processor.py # 图像处理主模块
+│   │   ├── watermark.py       # 多类型水印处理器
+│   │   ├── image_processor.py # 图像处理主模块
+│   │   └── template_manager.py # 模板管理器
 │   ├── gui/                   # 图形界面模块
 │   │   ├── widgets/           # UI组件
 │   │   │   ├── drag_drop.py   # 拖拽组件
 │   │   │   ├── thumbnail.py   # 缩略图列表
-│   │   │   └── progress.py    # 进度对话框
-│   │   ├── main_window.py     # 主窗口
+│   │   │   ├── progress.py    # 进度对话框
+│   │   │   ├── preview.py     # 实时预览组件
+│   │   │   └── export_confirm.py # 导出确认对话框
+│   │   ├── main_window.py     # 主窗口（含实时预览）
 │   │   ├── file_manager.py    # 文件管理器
 │   │   └── export_dialog.py   # 导出设置对话框
 │   ├── utils/                 # 工具函数
 │   │   ├── file_utils.py      # 文件操作工具
-│   │   └── color_utils.py     # 颜色处理工具
+│   │   ├── color_utils.py     # 颜色处理工具
+│   │   └── font_manager.py    # 字体管理器
 │   ├── templates/             # 配置模板
 │   │   ├── default_config.json
 │   │   ├── elegant_config.json
 │   │   └── minimal_config.json
-│   ├── tests/                 # 测试用例
-│   │   ├── test_config.py
-│   │   └── test_color_utils.py
 │   ├── cli.py                 # 命令行界面
 │   ├── __main__.py            # 模块入口
 │   └── __init__.py
+├── tests/                     # 测试用例
+│   ├── unit/                  # 单元测试
+│   ├── integration/           # 集成测试
+│   ├── debug/                 # 调试脚本
+│   ├── fixtures/              # 测试数据
+│   └── run_tests.py           # 测试运行脚本
 ├── docs/                      # 文档目录
-│   └── prd/                   # 产品需求文档
-│       ├── README.md          # PRD索引
-│       ├── v1.0-photo-watermark-core.md
-│       └── v2.0-gui-file-processing.md
-├── main.py                    # 命令行程序入口
-├── gui_main.py                # GUI程序入口
-├── run_tests.py               # 测试运行脚本
-├── requirements.txt           # 依赖文件
-└── README.md                  # 说明文档
+│   ├── prd/                   # 产品需求文档
+│   │   ├── v1.0-photo-watermark-core.md
+│   │   ├── v2.0-gui-file-processing.md
+│   │   ├── v2.1-watermark-types.md
+│   │   ├── v2.2-watermark-layout-preview.md
+│   │   └── v2.3-configuration-management.md
+│   └── FONT_FEATURES.md       # 字体功能说明
+├── packaging/                 # 打包脚本
+│   ├── build_app.sh          # 应用构建脚本
+│   └── README.md             # 打包说明
+├── assets/                   # 应用资源
+│   └── icon.png              # 应用图标
+├── main.py                   # 命令行程序入口
+├── gui_main.py               # GUI程序入口
+├── requirements.txt          # 依赖文件
+└── README.md                 # 说明文档
 ```
 
 ## 🧪 测试
@@ -248,13 +351,17 @@ PhotoWatermark/
 运行测试用例：
 
 ```bash
-python run_tests.py
-```
+# 运行完整测试套件
+python tests/run_tests.py
 
-或者使用unittest：
+# 运行单元测试
+python -m unittest discover tests/unit
 
-```bash
-python -m unittest discover photo_watermark/tests
+# 运行集成测试
+python -m unittest discover tests/integration
+
+# 运行特定测试
+python -m unittest tests.unit.test_config
 ```
 
 ## 📝 使用示例
@@ -266,16 +373,20 @@ python -m unittest discover photo_watermark/tests
    python gui_main.py
    ```
 
-2. **快速处理流程**
-   - 拖拽图片文件夹到应用窗口
-   - 在左侧面板调整水印设置
-   - 点击"导出图片"按钮
-   - 选择输出目录和文件格式
-   - 开始处理并查看进度
+2. **多种水印类型快速上手**
+   - **时间水印**: 拖拽照片 → 选择时间水印 → 实时预览 → 导出
+   - **文本水印**: 输入自定义文本 → 调整字体样式 → 预览效果 → 导出
+   - **图片水印**: 选择Logo文件 → 调整大小位置 → 预览效果 → 导出
+
+3. **实时预览功能**
+   - 导入多张图片后，在预览窗口切换查看不同图片的水印效果
+   - 直接在预览图上拖拽水印到合适位置
+   - 使用九宫格快速定位或精确坐标输入
+   - 实时调整旋转角度、透明度等参数
 
 ### 💻 命令行示例
 
-#### 示例1: 基本水印
+#### 示例1: 基本时间水印
 
 ```bash
 python main.py ./sample_photos
@@ -283,41 +394,65 @@ python main.py ./sample_photos
 
 这将：
 - 处理 `./sample_photos` 目录下的所有图片
+- 自动提取EXIF拍摄时间作为水印
 - 使用默认样式（白色文字，右下角，透明度0.8）
-- 将结果保存到 `./sample_photos/sample_photos_watermark/` 目录
+- 将结果保存到 `./sample_photos_watermark/` 目录
 
-#### 示例2: 自定义样式
+#### 示例2: 自定义文本水印
 
 ```bash
-python main.py ./photos -c "rgb(255,255,0)" -p center -s 36 -a 0.6 -f "DD MMM YYYY"
+python main.py ./photos --watermark-type text --text "© 2024 My Studio" -c "rgb(255,255,0)" -p center -s 36 --shadow
 ```
 
 这将：
-- 使用黄色文字
-- 水印位置居中
-- 字体大小36像素
-- 透明度0.6
-- 日期格式为 "15 Mar 2024"
+- 创建自定义文本水印 "© 2024 My Studio"
+- 使用黄色文字，居中位置，36像素字体
+- 添加阴影效果增强可读性
 
-#### 示例3: 使用配置文件
+#### 示例3: 图片Logo水印
 
 ```bash
-# 首先保存配置
-python main.py ./photos -c red -s 28 -p top-right --save-config red_style.json
-
-# 然后使用保存的配置
-python main.py ./new_photos --config red_style.json
+python main.py ./photos --watermark-type image --image-path ./logo.png --scale-percentage 0.15 -p top-right -a 0.7
 ```
 
-#### 示例4: 预览和详细输出
+这将：
+- 使用logo.png作为图片水印
+- 缩放到原图15%大小
+- 放置在右上角，透明度0.7
+
+#### 示例4: 高级文本效果
+
+```bash
+python main.py ./photos --watermark-type text --text "PROFESSIONAL\nPHOTOGRAPHY" --bold --stroke-width 3 --stroke-color black --rotation 45
+```
+
+这将：
+- 创建多行文本水印
+- 粗体字体，黑色描边
+- 45度角旋转效果
+
+#### 示例5: 使用模板配置
+
+```bash
+# 保存当前配置为模板
+python main.py ./photos --text "My Watermark" --bold --shadow --save-config my_template.json
+
+# 使用保存的模板
+python main.py ./new_photos --config my_template.json
+
+# 使用内置优雅模板
+python main.py ./photos --config src/templates/elegant_config.json
+```
+
+#### 示例6: 预览和调试
 
 ```bash
 python main.py ./photos --preview --verbose
 ```
 
 这将：
-- 预览水印效果但不保存文件
-- 显示详细的处理信息
+- 预览所有水印效果但不保存文件
+- 显示详细的处理信息和错误诊断
 
 ## ⚠️ 注意事项
 
