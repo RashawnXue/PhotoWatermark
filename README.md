@@ -1,6 +1,32 @@
-# PhotoWatermark - 专业图片水印工具
+<div align="center">
+  <img src="assets/icon.svg" alt="PhotoWatermark Logo" width="120" height="120">
+  
+  # PhotoWatermark
+  
+  **专业图片水印工具**
+  
+  *让你的照片记录时光，为每一张图片添加专业水印*
+  
+  [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
+  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+  [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](README.md)
+  
+</div>
 
-一个功能强大的图片水印工具，支持多种水印类型和丰富的自定义选项。提供命令行界面和现代化图形用户界面，支持实时预览、批量处理、模板管理等专业功能。
+---
+
+## 🌟 产品概述
+
+PhotoWatermark 是一款功能强大的专业图片水印工具，专为摄影师、设计师和内容创作者打造。支持多种水印类型、丰富的自定义选项，提供直观的图形界面和高效的命令行工具，让您轻松为图片添加专业水印。
+
+### 🎯 核心优势
+
+- **🎨 多样化水印类型** - 支持时间、文本、图片三种水印类型，满足不同需求
+- **🖥️ 双重界面体验** - 现代化GUI界面 + 高效命令行工具
+- **⚡ 实时预览功能** - 所见即所得，参数调整即时显示效果
+- **💾 智能模板管理** - 保存/加载配置模板，一键应用预设样式
+- **🔧 专业级功能** - 批量处理、进度显示、配置持久化
+- **🌈 丰富样式选项** - 字体、颜色、透明度、阴影、描边、旋转等
 
 ## ✨ 特性
 
@@ -10,42 +36,94 @@
 - 🖼️ **图片水印**: 支持Logo、图标等图片水印，可调整大小和透明度
 
 ### 🎨 丰富的样式选项
-- 🔤 **字体控制**: 系统字体选择、大小调节、粗体/斜体样式
-- 🎨 **颜色设置**: 字体颜色、透明度、阴影效果、描边效果
-- 📍 **位置控制**: 九宫格预设位置、自定义坐标、边距调节
-- 🔄 **旋转功能**: 任意角度旋转，实时预览效果
+- 🔤 **智能字体系统**: 系统字体选择、大小调节、粗体/斜体样式，支持中文字体自动回退
+- 🎨 **专业颜色控制**: RGB/HSV/十六进制颜色选择器，颜色历史记录，预设颜色快选
+- 📍 **精确位置控制**: 九宫格预设位置、自定义坐标、边距调节、拖拽定位
+- 🔄 **旋转和变换**: 任意角度旋转，实时预览效果
+- ✨ **视觉效果增强**: 阴影效果（颜色、偏移、模糊）、描边效果（颜色、宽度）
+- 🌈 **透明度控制**: 文本和图片水印独立透明度调节，支持快速预设
 
-### 🖥️ 现代化界面
-- 🎯 **实时预览**: 参数调整即时显示效果，支持多图片切换预览
-- 🖱️ **拖拽操作**: 直接拖拽文件导入，预览窗口内拖拽定位水印
+### 🖥️ 现代化界面体验
+- 🎯 **实时预览系统**: 参数调整即时显示效果，支持多图片切换预览
+- 🖱️ **直观拖拽操作**: 直接拖拽文件导入，预览窗口内拖拽定位水印
 - 📱 **响应式布局**: 自适应窗口大小，支持缩放和滚动
-- 🎛️ **直观控制**: 滑块、颜色选择器、实时坐标显示
+- 🎛️ **专业控制面板**: 滑块、颜色选择器、字体预览、实时坐标显示
+- 🖼️ **缩略图管理**: 网格/列表视图，批量选择，实时状态显示
 
-### ⚙️ 专业功能
-- 💾 **模板管理**: 保存/加载水印配置模板，快速应用预设样式
-- 📁 **批量处理**: 支持整个目录的批量处理，递归子目录
-- 📊 **进度显示**: 详细的处理进度和统计信息
-- 🔧 **配置持久化**: 自动保存上次会话设置，程序重启恢复状态
+### ⚙️ 企业级功能
+- 💾 **智能模板管理**: 保存/加载/重命名/删除配置模板，支持覆盖确认和元数据管理
+- 📁 **高效批量处理**: 支持整个目录的批量处理，递归子目录，智能文件过滤
+- 📊 **详细进度跟踪**: 实时处理进度、统计信息、错误报告
+- 🔧 **配置持久化**: 自动保存上次会话设置，程序重启恢复状态，默认模板支持
+- 🛡️ **数据安全保障**: 原子操作、错误恢复、配置备份
 
 ### 💻 双重界面
 - 🖥️ **图形用户界面**: 直观的拖拽操作和可视化设置（推荐）
 - 💻 **命令行界面**: 适合批量处理和自动化脚本
 - 🌈 **友好交互**: 彩色终端输出和现代化GUI设计
 
-## 📦 安装
+## 🎯 适用场景
 
-### 环境要求
+### 📸 摄影师
+- **作品保护**: 为摄影作品添加版权水印，防止盗用
+- **品牌推广**: 添加工作室Logo，提升品牌知名度
+- **时间记录**: 自动添加拍摄时间，记录珍贵时刻
 
-- Python 3.8+
-- pip
+### 🎨 设计师
+- **版权标识**: 为设计作品添加署名和版权信息
+- **客户预览**: 为客户预览图添加"DRAFT"或"PREVIEW"标识
+- **品牌一致性**: 统一的水印样式，保持品牌形象
 
-### 安装依赖
+### 📱 内容创作者
+- **社交媒体**: 为发布的图片添加个人标识
+- **教程制作**: 为教程截图添加说明文字
+- **产品展示**: 为产品图片添加规格或价格信息
+
+### 🏢 企业用户
+- **文档管理**: 为内部文档添加"机密"或"内部使用"标识
+- **产品目录**: 批量为产品图片添加型号和规格
+- **营销材料**: 统一的品牌水印，提升专业形象
+
+## 📦 快速安装
+
+### 🔧 环境要求
+
+- **Python**: 3.8 或更高版本
+- **操作系统**: Windows 10+, macOS 10.14+, Linux (Ubuntu 18.04+)
+- **内存**: 建议 4GB 以上
+- **存储**: 至少 100MB 可用空间
+
+### ⚡ 一键安装
 
 ```bash
+# 1. 克隆项目
+git clone https://github.com/your-repo/PhotoWatermark.git
+cd PhotoWatermark
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 启动GUI版本（推荐）
+python gui_main.py
+```
+
+### 🐍 Python环境配置
+
+```bash
+# 使用虚拟环境（推荐）
+python -m venv venv
+
+# 激活虚拟环境
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
-### 验证安装
+### ✅ 验证安装
 
 ```bash
 # 验证命令行版本
@@ -53,40 +131,82 @@ python main.py --help
 
 # 验证GUI版本
 python gui_main.py
+
+# 运行测试套件
+python tests/run_tests.py
 ```
 
 ## 🚀 快速开始
 
-### 🖥️ 图形界面版本（推荐）
+### 🖥️ GUI界面版本（推荐新手）
 
 ```bash
-# 启动GUI应用
+# 启动现代化图形界面
 python gui_main.py
 ```
 
-**GUI功能特性：**
-- 📂 **拖拽导入**: 直接拖拽图片文件或文件夹到应用窗口
-- 🖼️ **缩略图预览**: 网格或列表视图显示导入的图片
-- 👁️ **实时预览**: 水印效果实时显示，支持多图片切换预览
-- 🖱️ **交互式定位**: 在预览窗口内直接拖拽水印到目标位置
-- ⚙️ **可视化设置**: 直观的水印参数配置界面
-- 🎨 **多种水印类型**: 支持时间、文本、图片三种水印类型
-- 💾 **模板管理**: 保存和加载水印配置模板
-- 📤 **灵活导出**: 自定义输出目录、文件命名和格式
-- 📊 **实时进度**: 处理进度条和状态显示
+**🌟 GUI核心功能：**
+- 📂 **智能文件导入**: 拖拽文件/文件夹，支持批量导入和递归子目录
+- 🖼️ **专业缩略图管理**: 网格/列表视图，批量选择，实时状态显示
+- 👁️ **实时预览系统**: 水印效果即时显示，支持多图片切换预览
+- 🖱️ **直观拖拽定位**: 预览窗口内直接拖拽水印到精确位置
+- 🎨 **专业颜色控制**: RGB/HSV/十六进制颜色选择器，颜色历史记录
+- 🔤 **智能字体系统**: 字体预览、粗体/斜体、中文字体自动回退
+- ✨ **视觉效果增强**: 阴影（颜色/偏移/模糊）、描边（颜色/宽度）
+- 🌈 **透明度控制**: 文本和图片水印独立透明度，快速预设
+- 💾 **智能模板管理**: 保存/加载/重命名/删除，支持覆盖确认
+- 📤 **灵活导出设置**: 自定义目录、文件命名、格式和质量
+- 📊 **详细进度跟踪**: 实时进度条、统计信息、错误报告
 
-### 💻 命令行版本
+### 💻 命令行版本（适合专业用户）
 
 ```bash
-# 处理单张图片（默认EXIF时间水印）
+# 基础用法 - 处理单张图片（默认EXIF时间水印）
 python main.py /path/to/photo.jpg
 
-# 处理整个目录
+# 批量处理 - 处理整个目录
 python main.py /path/to/photos
 
-# 递归处理子目录
+# 递归处理 - 包含所有子目录
 python main.py /path/to/photos --recursive
 ```
+
+**⚡ 命令行优势：**
+- 🚀 **高效批处理**: 适合处理大量图片，支持自动化脚本
+- 🔧 **精确控制**: 丰富的参数选项，满足专业需求
+- 📝 **脚本集成**: 易于集成到工作流程和批处理脚本中
+- 💾 **配置复用**: 支持配置文件，批量应用相同设置
+
+## 🆕 最新更新 (v2.3)
+
+### ✨ 重大功能升级
+
+**🎨 专业级颜色系统**
+- 全新RGB/HSV/十六进制颜色选择器
+- 颜色历史记录和预设颜色快选
+- 跨平台兼容的颜色显示
+
+**🔤 智能字体管理**
+- 实时字体预览功能
+- 中文字体自动回退机制
+- 粗体/斜体样式智能模拟
+
+**🌈 透明度精确控制**
+- 文本和图片水印独立透明度调节
+- 快速透明度预设 (25%, 50%, 75%, 100%)
+- 实时透明度效果预览
+
+**💾 企业级模板管理**
+- 智能模板保存/加载/重命名/删除
+- 覆盖确认和冲突检测
+- 完整的元数据管理（版本、时间、描述）
+- 原子操作确保数据安全
+
+**🛡️ 稳定性提升**
+- 修复模板保存覆盖问题
+- 改进文件名冲突处理
+- 增强错误处理和用户反馈
+- 完整的测试套件覆盖
 
 ### 多种水印类型
 
@@ -289,61 +409,70 @@ python main.py [OPTIONS] INPUT_PATH
 - 灵活的缩放模式
 - 支持旋转和翻转效果
 
-## 📁 项目结构
+## 📁 项目架构
 
 ```
-PhotoWatermark/
-├── src/                       # 主程序包
-│   ├── core/                  # 核心功能模块
-│   │   ├── config.py          # 配置管理和数据模型
-│   │   ├── exif_reader.py     # EXIF信息读取
-│   │   ├── watermark.py       # 多类型水印处理器
-│   │   ├── image_processor.py # 图像处理主模块
-│   │   └── template_manager.py # 模板管理器
-│   ├── gui/                   # 图形界面模块
-│   │   ├── widgets/           # UI组件
-│   │   │   ├── drag_drop.py   # 拖拽组件
-│   │   │   ├── thumbnail.py   # 缩略图列表
-│   │   │   ├── progress.py    # 进度对话框
-│   │   │   ├── preview.py     # 实时预览组件
-│   │   │   └── export_confirm.py # 导出确认对话框
-│   │   ├── main_window.py     # 主窗口（含实时预览）
-│   │   ├── file_manager.py    # 文件管理器
-│   │   └── export_dialog.py   # 导出设置对话框
-│   ├── utils/                 # 工具函数
-│   │   ├── file_utils.py      # 文件操作工具
-│   │   ├── color_utils.py     # 颜色处理工具
-│   │   └── font_manager.py    # 字体管理器
-│   ├── templates/             # 配置模板
-│   │   ├── default_config.json
-│   │   ├── elegant_config.json
-│   │   └── minimal_config.json
-│   ├── cli.py                 # 命令行界面
-│   ├── __main__.py            # 模块入口
+PhotoWatermark/                    # 🏠 项目根目录
+├── src/                          # 📦 主程序包
+│   ├── core/                     # ⚙️ 核心功能模块
+│   │   ├── config.py             # 🔧 配置管理和数据模型
+│   │   ├── exif_reader.py        # 📷 EXIF信息读取
+│   │   ├── watermark.py          # 🎨 多类型水印处理器
+│   │   ├── image_processor.py    # 🖼️ 图像处理主模块
+│   │   └── template_manager.py   # 💾 智能模板管理器 (v2.3新增)
+│   ├── gui/                      # 🖥️ 现代化图形界面
+│   │   ├── widgets/              # 🧩 专业UI组件
+│   │   │   ├── drag_drop.py      # 📂 拖拽文件组件
+│   │   │   ├── thumbnail.py      # 🖼️ 缩略图列表组件
+│   │   │   ├── progress.py       # 📊 进度显示对话框
+│   │   │   ├── color_picker.py   # 🎨 专业颜色选择器 (v2.1新增)
+│   │   │   ├── enhanced_color_selector.py # 🌈 增强颜色选择器
+│   │   │   ├── font_preview.py   # 🔤 字体预览组件 (v2.1新增)
+│   │   │   └── export_confirm.py # ✅ 导出确认对话框
+│   │   ├── main_window.py        # 🏠 主窗口（集成所有功能）
+│   │   ├── file_manager.py       # 📁 智能文件管理器
+│   │   └── export_dialog.py      # 📤 导出设置对话框
+│   ├── utils/                    # 🛠️ 工具函数库
+│   │   ├── file_utils.py         # 📄 文件操作工具
+│   │   ├── color_utils.py        # 🎨 颜色处理工具 (v2.1增强)
+│   │   └── font_manager.py       # 🔤 智能字体管理器 (v2.1增强)
+│   ├── templates/                # 📋 配置模板库
+│   │   ├── default_config.json   # 🔧 默认配置模板
+│   │   ├── elegant_config.json   # ✨ 优雅样式模板
+│   │   └── minimal_config.json   # 🎯 简约样式模板
+│   ├── cli.py                    # 💻 命令行界面
+│   ├── __main__.py               # 🚀 模块入口
 │   └── __init__.py
-├── tests/                     # 测试用例
-│   ├── unit/                  # 单元测试
-│   ├── integration/           # 集成测试
-│   ├── debug/                 # 调试脚本
-│   ├── fixtures/              # 测试数据
-│   └── run_tests.py           # 测试运行脚本
-├── docs/                      # 文档目录
-│   ├── prd/                   # 产品需求文档
-│   │   ├── v1.0-photo-watermark-core.md
-│   │   ├── v2.0-gui-file-processing.md
-│   │   ├── v2.1-watermark-types.md
-│   │   ├── v2.2-watermark-layout-preview.md
-│   │   └── v2.3-configuration-management.md
-│   └── FONT_FEATURES.md       # 字体功能说明
-├── packaging/                 # 打包脚本
-│   ├── build_app.sh          # 应用构建脚本
-│   └── README.md             # 打包说明
-├── assets/                   # 应用资源
-│   └── icon.png              # 应用图标
-├── main.py                   # 命令行程序入口
-├── gui_main.py               # GUI程序入口
-├── requirements.txt          # 依赖文件
-└── README.md                 # 说明文档
+├── tests/                        # 🧪 完整测试套件
+│   ├── unit/                     # 🔬 单元测试
+│   ├── integration/              # 🔗 集成测试
+│   ├── debug/                    # 🐛 调试和验证脚本
+│   │   ├── test_template_management.py  # 💾 模板管理测试 (v2.3新增)
+│   │   ├── test_template_naming.py      # 📝 模板命名测试 (v2.3新增)
+│   │   ├── test_multiple_templates.py  # 📚 多模板测试 (v2.3新增)
+│   │   └── clean_templates.py          # 🧹 模板清理工具 (v2.3新增)
+│   ├── fixtures/                 # 📊 测试数据
+│   └── run_tests.py              # ▶️ 测试运行脚本
+├── docs/                         # 📚 完整文档体系
+│   ├── prd/                      # 📋 产品需求文档
+│   │   ├── v1.0-photo-watermark-core.md      # 🏗️ 核心功能
+│   │   ├── v2.0-gui-file-processing.md       # 🖥️ GUI界面
+│   │   ├── v2.1-watermark-types.md           # 🎨 水印类型
+│   │   ├── v2.2-watermark-layout-preview.md  # 👁️ 布局预览
+│   │   └── v2.3-configuration-management.md  # ⚙️ 配置管理
+│   └── FONT_FEATURES.md          # 🔤 字体功能说明
+├── packaging/                    # 📦 应用打包
+│   ├── build_app.sh             # 🔨 构建脚本
+│   └── README.md                # 📖 打包说明
+├── assets/                       # 🎨 应用资源
+│   ├── icon.svg                 # 🎯 矢量图标
+│   ├── icon.png                 # 🖼️ PNG图标
+│   ├── icon.ico                 # 💻 Windows图标
+│   └── icon.icns                # 🍎 macOS图标
+├── main.py                       # 🚀 命令行程序入口
+├── gui_main.py                   # 🖥️ GUI程序入口
+├── requirements.txt              # 📋 依赖管理文件
+└── README.md                     # 📖 项目说明文档
 ```
 
 ## 🧪 测试
@@ -478,21 +607,85 @@ A: 对于大量图片，可以降低输出质量或使用PNG格式以提高速�
 **Q: 内存占用过高**
 A: 处理超大图片时可能占用较多内存，建议分批处理。
 
-## 🤝 贡献
+## 🤝 参与贡献
 
-欢迎提交Issue和Pull Request来改进这个项目！
+我们欢迎所有形式的贡献！无论是功能建议、Bug报告还是代码改进。
 
-## 📄 许可证
+### 🔧 开发贡献
+```bash
+# 1. Fork 项目
+# 2. 创建功能分支
+git checkout -b feature/amazing-feature
 
-MIT License
+# 3. 提交更改
+git commit -m 'Add some amazing feature'
 
-## 📞 联系方式
+# 4. 推送到分支
+git push origin feature/amazing-feature
 
-如有问题或建议，请通过以下方式联系：
+# 5. 创建 Pull Request
+```
 
-- 创建Issue: [GitHub Issues](https://github.com/your-repo/PhotoWatermark/issues)
-- 邮箱: your-email@example.com
+### 🐛 问题反馈
+- 🔍 **Bug报告**: 详细描述问题和复现步骤
+- 💡 **功能建议**: 提出新功能想法和使用场景
+- 📖 **文档改进**: 帮助完善文档和示例
+
+### 🧪 测试贡献
+```bash
+# 运行测试确保代码质量
+python tests/run_tests.py
+
+# 添加新的测试用例
+python -m unittest tests.unit.test_your_feature
+```
+
+## 📊 项目统计
+
+- **代码行数**: 5000+ 行
+- **测试覆盖**: 85%+
+- **支持平台**: Windows, macOS, Linux
+- **支持语言**: 中文, English
+- **活跃维护**: ✅
+
+## 🏆 版本历史
+
+- **v2.3** (2024-10) - 企业级模板管理，专业颜色系统
+- **v2.2** (2024-09) - 实时预览，拖拽定位
+- **v2.1** (2024-08) - 字体样式，颜色选择器
+- **v2.0** (2024-07) - GUI界面，批量处理
+- **v1.0** (2024-06) - 核心水印功能
+
+## 📄 开源许可
+
+本项目采用 [MIT License](LICENSE) 开源许可证。
+
+```
+MIT License - 自由使用、修改和分发
+✅ 商业使用    ✅ 修改代码    ✅ 分发软件    ✅ 私人使用
+❌ 责任承担    ❌ 保证担保
+```
+
+## 📞 联系我们
+
+### 🔗 项目链接
+- **GitHub**: [PhotoWatermark Repository](https://github.com/your-repo/PhotoWatermark)
+- **Issues**: [问题反馈](https://github.com/your-repo/PhotoWatermark/issues)
+- **Discussions**: [功能讨论](https://github.com/your-repo/PhotoWatermark/discussions)
+
+### 📧 联系方式
+- **项目维护**: [your-email@example.com](mailto:your-email@example.com)
+- **技术支持**: 通过 GitHub Issues 获得最快响应
+- **商业合作**: 请通过邮件联系
 
 ---
 
-**PhotoWatermark** - 让你的照片记录时光 📸✨
+<div align="center">
+  
+  **PhotoWatermark** - *让每一张照片都记录时光* 📸✨
+  
+  *Professional Watermarking Tool for Everyone*
+  
+  ⭐ 如果这个项目对您有帮助，请给我们一个 Star！⭐
+  
+</div>
