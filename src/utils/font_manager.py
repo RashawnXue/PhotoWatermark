@@ -11,6 +11,37 @@ from PIL import ImageFont
 import glob
 
 
+class StyledFontWrapper:
+    """字体样式包装器，用于模拟粗体和斜体效果"""
+    
+    def __init__(self, base_font: ImageFont.ImageFont, bold: bool = False, italic: bool = False):
+        self.base_font = base_font
+        self.bold = bold
+        self.italic = italic
+        
+    def getsize(self, text):
+        """获取文本尺寸（兼容旧版PIL）"""
+        try:
+            return self.base_font.getsize(text)
+        except AttributeError:
+            # 新版PIL使用textbbox
+            bbox = self.base_font.getbbox(text)
+            return (bbox[2] - bbox[0], bbox[3] - bbox[1])
+    
+    def getbbox(self, text):
+        """获取文本边界框"""
+        try:
+            return self.base_font.getbbox(text)
+        except AttributeError:
+            # 如果没有getbbox方法，使用getsize估算
+            width, height = self.base_font.getsize(text)
+            return (0, 0, width, height)
+    
+    def __getattr__(self, name):
+        """代理其他属性到基础字体"""
+        return getattr(self.base_font, name)
+
+
 class FontManager:
     """字体管理器"""
     
@@ -325,9 +356,11 @@ class FontManager:
             return False
     
     def get_font(self, font_path: Optional[str], font_size: int, 
-                 bold: bool = False, italic: bool = False) -> ImageFont.ImageFont:
-        """获取字体对象（带缓存），支持字体样式变体"""
-        cache_key = f"{font_path}_{font_size}_{bold}_{italic}"
+                 bold: bool = False, italic: bool = False, text: str = "") -> ImageFont.ImageFont:
+        """获取字体对象（带缓存），支持字体样式变体和中文回退"""
+        # 检查是否包含中文字符
+        has_chinese = self._contains_chinese(text)
+        cache_key = f"{font_path}_{font_size}_{bold}_{italic}_{has_chinese}"
         
         if cache_key in self._font_cache:
             return self._font_cache[cache_key]
@@ -335,11 +368,24 @@ class FontManager:
         try:
             # 如果指定了字体路径，尝试查找对应样式的变体
             if font_path and os.path.exists(font_path):
-                target_font_path = self._find_font_variant(font_path, bold, italic)
-                font = ImageFont.truetype(target_font_path, font_size)
+                # 如果包含中文，检查字体是否支持中文
+                if has_chinese and not self._font_supports_chinese(font_path):
+                    # 使用支持中文的默认字体
+                    font = self._get_chinese_font(font_size, bold, italic)
+                else:
+                    target_font_path = self._find_font_variant(font_path, bold, italic)
+                    font = ImageFont.truetype(target_font_path, font_size)
+                    
+                    # 如果找到的字体路径和原路径相同，说明没有找到对应的样式变体
+                    # 在这种情况下，我们返回一个包装的字体对象，用于后续的样式处理
+                    if target_font_path == font_path and (bold or italic):
+                        font = self._create_styled_font_wrapper(font, bold, italic)
             else:
                 # 使用默认字体
-                font = self._get_default_font(font_size, bold, italic)
+                if has_chinese:
+                    font = self._get_chinese_font(font_size, bold, italic)
+                else:
+                    font = self._get_default_font(font_size, bold, italic)
             
             self._font_cache[cache_key] = font
             return font
@@ -347,13 +393,81 @@ class FontManager:
         except Exception:
             # 回退到系统默认字体
             try:
-                default_font = self._get_default_font(font_size, bold, italic)
+                if has_chinese:
+                    default_font = self._get_chinese_font(font_size, bold, italic)
+                else:
+                    default_font = self._get_default_font(font_size, bold, italic)
                 self._font_cache[cache_key] = default_font
                 return default_font
             except Exception:
                 default_font = ImageFont.load_default()
                 self._font_cache[cache_key] = default_font
                 return default_font
+    
+    def _create_styled_font_wrapper(self, font: ImageFont.ImageFont, bold: bool, italic: bool) -> StyledFontWrapper:
+        """创建样式字体包装器"""
+        return StyledFontWrapper(font, bold, italic)
+    
+    def _contains_chinese(self, text: str) -> bool:
+        """检查文本是否包含中文字符"""
+        if not text:
+            return False
+        
+        for char in text:
+            # 检查是否为中文字符（包括中文标点符号）
+            if '\u4e00' <= char <= '\u9fff' or '\u3400' <= char <= '\u4dbf' or '\uff00' <= char <= '\uffef':
+                return True
+        return False
+    
+    def _get_chinese_font(self, font_size: int, bold: bool = False, italic: bool = False) -> ImageFont.ImageFont:
+        """获取支持中文的字体"""
+        # 获取支持中文的字体列表
+        chinese_fonts = [f for f in self.get_recommended_fonts() if f.get('supports_chinese', False)]
+        
+        if chinese_fonts:
+            # 优先选择第一个支持中文的字体
+            chinese_font_path = chinese_fonts[0]['path']
+            try:
+                target_font_path = self._find_font_variant(chinese_font_path, bold, italic)
+                font = ImageFont.truetype(target_font_path, font_size)
+                
+                # 如果找不到对应样式变体，创建样式包装器
+                if target_font_path == chinese_font_path and (bold or italic):
+                    font = self._create_styled_font_wrapper(font, bold, italic)
+                
+                return font
+            except Exception:
+                pass
+        
+        # 如果没有找到支持中文的字体，尝试系统默认中文字体
+        system = platform.system()
+        chinese_font_names = []
+        
+        if system == "Windows":
+            chinese_font_names = ["SimHei", "Microsoft YaHei", "SimSun", "KaiTi"]
+        elif system == "Darwin":  # macOS
+            chinese_font_names = ["PingFang SC", "Hiragino Sans GB", "STHeiti", "Arial Unicode MS"]
+        else:  # Linux
+            chinese_font_names = ["Noto Sans CJK SC", "WenQuanYi Micro Hei", "DejaVu Sans"]
+        
+        for font_name in chinese_font_names:
+            try:
+                # 在系统字体中查找
+                system_fonts = self.get_system_fonts()
+                for font_info in system_fonts:
+                    if font_name.lower() in font_info['name'].lower():
+                        target_font_path = self._find_font_variant(font_info['path'], bold, italic)
+                        font = ImageFont.truetype(target_font_path, font_size)
+                        
+                        if target_font_path == font_info['path'] and (bold or italic):
+                            font = self._create_styled_font_wrapper(font, bold, italic)
+                        
+                        return font
+            except Exception:
+                continue
+        
+        # 最后回退到默认字体
+        return self._get_default_font(font_size, bold, italic)
     
     def _find_font_variant(self, base_font_path: str, bold: bool, italic: bool) -> str:
         """查找字体的样式变体"""
