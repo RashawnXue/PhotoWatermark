@@ -2252,24 +2252,58 @@ class MainWindow:
         dlg.title("保存为模板")
         dlg.transient(self.root)
         dlg.grab_set()
+        dlg.geometry("500x300")
 
         ttk.Label(dlg, text="模板名称:").grid(row=0, column=0, padx=10, pady=10, sticky='w')
         name_var = tk.StringVar()
-        ttk.Entry(dlg, textvariable=name_var, width=40).grid(row=0, column=1, padx=10, pady=10)
+        name_entry = ttk.Entry(dlg, textvariable=name_var, width=40)
+        name_entry.grid(row=0, column=1, padx=10, pady=10)
+        name_entry.focus()
 
         ttk.Label(dlg, text="描述 (可选):").grid(row=1, column=0, padx=10, pady=0, sticky='nw')
         desc_text = tk.Text(dlg, height=4, width=40)
         desc_text.grid(row=1, column=1, padx=10, pady=5)
+
+        # 覆盖选项
+        overwrite_var = tk.BooleanVar()
+        overwrite_check = ttk.Checkbutton(dlg, text="覆盖同名模板", variable=overwrite_var)
+        overwrite_check.grid(row=2, column=1, padx=10, pady=5, sticky='w')
+
+        def _check_template_exists(name):
+            """检查模板是否已存在"""
+            try:
+                existing_templates = self.template_manager.list_templates()
+                return any(template['name'] == name for template in existing_templates)
+            except Exception:
+                return False
 
         def _on_save():
             name = name_var.get().strip()
             if not name:
                 messagebox.showerror("错误", "请输入模板名称")
                 return
+            
+            # 检查模板是否已存在
+            template_exists = _check_template_exists(name)
+            if template_exists and not overwrite_var.get():
+                # 询问用户是否覆盖
+                result = messagebox.askyesnocancel(
+                    "模板已存在", 
+                    f"模板 '{name}' 已存在。\n\n是否覆盖现有模板？\n\n点击'是'覆盖，'否'取消保存，'取消'返回修改。",
+                    icon='warning'
+                )
+                if result is None:  # 用户点击取消
+                    return
+                elif result is False:  # 用户点击否
+                    dlg.destroy()
+                    return
+                # result is True，继续保存（覆盖）
+            
             desc = desc_text.get('1.0', tk.END).strip()
             try:
                 cfg = self._get_watermark_config()
                 self.template_manager.save_template(name, cfg, desc)
+                
                 # 刷新嵌入式模板列表并选中新保存的模板
                 try:
                     self._template_refresh_list()
@@ -2287,13 +2321,14 @@ class MainWindow:
                 except Exception:
                     pass
 
-                messagebox.showinfo("成功", f"模板 '{name}' 已保存")
+                action = "覆盖" if template_exists else "保存"
+                messagebox.showinfo("成功", f"模板 '{name}' 已{action}")
                 dlg.destroy()
             except Exception as e:
                 messagebox.showerror("错误", f"保存模板失败: {e}")
 
         btn_frame = ttk.Frame(dlg)
-        btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=10)
         ttk.Button(btn_frame, text="保存", command=_on_save).pack(side='left', padx=5)
         ttk.Button(btn_frame, text="取消", command=dlg.destroy).pack(side='left', padx=5)
 
@@ -2442,23 +2477,59 @@ class MainWindow:
 
     def _template_rename_selected(self):
         if not getattr(self, 'template_manager', None):
+            messagebox.showerror('错误', '模板管理器不可用')
             return
         sel = self.template_listbox.curselection()
         if not sel:
+            messagebox.showinfo('提示', '请先选择一个模板')
             return
         idx = sel[0]
         items = self.template_manager.list_templates()
         if idx >= len(items):
             return
         item = items[idx]
-        new_name = simpledialog.askstring('重命名', '输入新模板名:', initialvalue=item['name'], parent=self.root)
-        if not new_name:
-            return
-        try:
-            self.template_manager.rename_template(item['name'], new_name)
-            self._template_refresh_list()
-        except Exception as e:
-            messagebox.showerror('错误', f"重命名失败: {e}")
+        old_name = item['name']
+        
+        while True:
+            new_name = simpledialog.askstring(
+                '重命名模板', 
+                f'输入新模板名:\n\n当前名称: {old_name}', 
+                initialvalue=old_name, 
+                parent=self.root
+            )
+            if not new_name:  # 用户取消
+                return
+            
+            new_name = new_name.strip()
+            if not new_name:
+                messagebox.showerror('错误', '模板名称不能为空')
+                continue
+                
+            if new_name == old_name:
+                return  # 名称没有改变
+            
+            try:
+                self.template_manager.rename_template(old_name, new_name)
+                self._template_refresh_list()
+                # 选中重命名后的模板
+                try:
+                    updated_items = self.template_manager.list_templates()
+                    for new_idx, updated_item in enumerate(updated_items):
+                        if updated_item['name'] == new_name:
+                            self.template_listbox.select_clear(0, tk.END)
+                            self.template_listbox.select_set(new_idx)
+                            self.template_listbox.see(new_idx)
+                            break
+                except Exception:
+                    pass
+                messagebox.showinfo('成功', f"模板已重命名为 '{new_name}'")
+                break
+            except FileExistsError:
+                messagebox.showerror('错误', f"模板名称 '{new_name}' 已存在，请选择其他名称")
+                continue
+            except Exception as e:
+                messagebox.showerror('错误', f"重命名失败: {e}")
+                break
 
     def _template_set_default_selected(self):
         """将选中的模板设为默认模板"""

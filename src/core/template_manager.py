@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import hashlib
+import base64
 from datetime import datetime
 from typing import List, Dict, Optional
 
@@ -41,10 +43,28 @@ class TemplateManager:
         os.makedirs(self.templates_dir, exist_ok=True)
 
     def _sanitize_name(self, name: str) -> str:
+        """Generate a safe filename from template name.
+        
+        Uses a combination of cleaned name and hash to ensure uniqueness
+        while maintaining some readability.
+        """
         name = name.strip()
-        # allow letters, numbers, dash, underscore and space
-        name = re.sub(r'[^A-Za-z0-9_\- ]+', '_', name)
-        return name or 'unnamed'
+        if not name:
+            return 'unnamed'
+        
+        # Create a readable part by keeping safe characters
+        safe_part = re.sub(r'[^A-Za-z0-9_\-]', '', name)
+        if not safe_part:
+            safe_part = 'template'
+        
+        # Limit length of readable part
+        if len(safe_part) > 20:
+            safe_part = safe_part[:20]
+        
+        # Create a hash of the original name to ensure uniqueness
+        name_hash = hashlib.md5(name.encode('utf-8')).hexdigest()[:8]
+        
+        return f"{safe_part}_{name_hash}"
 
     def _template_filepath(self, name: str) -> str:
         safe = self._sanitize_name(name)
@@ -117,12 +137,36 @@ class TemplateManager:
             os.remove(path)
 
     def rename_template(self, old_name: str, new_name: str) -> None:
+        """Rename a template and update its metadata."""
         old_path = self._template_filepath(old_name)
         new_path = self._template_filepath(new_name)
         if not os.path.exists(old_path):
             raise FileNotFoundError(old_path)
-        # atomic rename
-        os.replace(old_path, new_path)
+        
+        # Check if new name already exists
+        if os.path.exists(new_path):
+            raise FileExistsError(f"Template '{new_name}' already exists")
+        
+        # Load the template data
+        with open(old_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Update metadata
+        meta = data.get('_meta', {})
+        meta['name'] = new_name
+        meta['modified_at'] = datetime.utcnow().isoformat() + 'Z'
+        data['_meta'] = meta
+        
+        # Save to new location atomically
+        tmp_path = new_path + '.tmp'
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        
+        # Atomic operations: first create new file, then remove old
+        os.replace(tmp_path, new_path)
+        os.remove(old_path)
 
     # last session handling
     def _last_session_path(self) -> str:
