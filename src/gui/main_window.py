@@ -19,6 +19,8 @@ from .widgets.drag_drop import DragDropFrame
 from .widgets.thumbnail import ThumbnailList
 from .widgets.progress import ProgressDialog
 from .widgets.export_confirm import ExportConfirmDialog
+from .widgets.enhanced_color_selector import EnhancedColorSelector, ColorSelectorWithLabel
+from .widgets.font_preview import FontSelector
 from .file_manager import FileManager
 from .export_dialog import ExportDialog
 from ..core.config import Config, Position, DateFormat
@@ -127,16 +129,16 @@ class MainWindow:
         # 右侧图片区域
         self._create_image_area(main_paned)
 
-        # 设置初始分割位置 - 增加左侧面板宽度
-        self.root.after(100, lambda: main_paned.sashpos(0, 400))
+        # 设置初始分割位置 - 增加左侧面板宽度 (调整为原来的130%)
+        self.root.after(100, lambda: main_paned.sashpos(0, 520))
 
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
         settings_frame = ttk.Frame(parent)
         parent.add(settings_frame, weight=0)
 
-        # 设置最小宽度
-        settings_frame.config(width=400)
+        # 设置最小宽度 (调整为原来的130%)
+        settings_frame.config(width=520)
 
         # 创建滚动框架
         canvas = tk.Canvas(settings_frame, highlightthickness=0, bg='white')
@@ -1021,16 +1023,18 @@ class MainWindow:
         self.watermark_notebook.add(timestamp_frame, text="时间水印")
         
         # 字体颜色
-        ttk.Label(timestamp_frame, text="字体颜色:").pack(anchor='w', padx=10, pady=(10, 0))
+        color_frame = ttk.Frame(timestamp_frame)
+        color_frame.pack(fill='x', padx=10, pady=(10, 5))
+        
         self.color_var = tk.StringVar(value="white")
-        color_combo = ttk.Combobox(
-            timestamp_frame, 
-            textvariable=self.color_var,
-            values=["white", "black", "red", "blue", "green", "yellow"],
-            state="readonly"
+        self.timestamp_color_selector = ColorSelectorWithLabel(
+            color_frame,
+            label_text="字体颜色:",
+            initial_color="white",
+            on_color_change=lambda color: (self.color_var.set(color), self._schedule_redraw()),
+            label_width=8
         )
-        color_combo.pack(fill='x', padx=10, pady=(0, 5))
-        color_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
+        self.timestamp_color_selector.pack(fill='x')
 
         # 透明度
         ttk.Label(timestamp_frame, text="透明度:").pack(anchor='w', padx=10, pady=(5, 0))
@@ -1127,91 +1131,42 @@ class MainWindow:
         font_frame = ttk.LabelFrame(text_frame, text="字体设置")
         font_frame.pack(fill='x', padx=10, pady=(5, 0))
 
-        # 字体选择
-        font_select_frame = ttk.Frame(font_frame)
-        font_select_frame.pack(fill='x', padx=10, pady=5)
-        ttk.Label(font_select_frame, text="字体:").pack(side='left')
-
         # 获取推荐字体列表
         self.recommended_fonts = font_manager.get_recommended_fonts()
-        font_names = [font['name'] for font in self.recommended_fonts]
-
+        
+        # 创建字体选择器（包含预览功能）
         self.text_font_var = tk.StringVar()
-        if font_names:
-            chinese_fonts = [f for f in self.recommended_fonts if f.get('supports_chinese', False)]
-            if chinese_fonts:
-                self.text_font_var.set(chinese_fonts[0]['name'])
-            else:
-                self.text_font_var.set(font_names[0])
-
-        self.text_font_combo = ttk.Combobox(
-            font_select_frame,
-            textvariable=self.text_font_var,
-            values=font_names,
-            state="readonly",
-            width=20
-        )
-        self.text_font_combo.pack(side='right')
-        self.text_font_combo.bind('<<ComboboxSelected>>', self._on_font_change)
-
-        if font_names:
-            self.root.after(100, lambda: self._on_font_change())
-
-    # NOTE: template helper methods are placed below so they are class-level
-    # and do not interfere with local variables used inside the tab creation
-    # methods such as `font_frame` and `text_frame`.
-        # 字体大小
-        size_frame = ttk.Frame(font_frame)
-        size_frame.pack(fill='x', padx=10, pady=5)
-        ttk.Label(size_frame, text="字体大小:").pack(side='left')
         self.text_font_size_var = tk.IntVar(value=36)
-        size_entry = ttk.Entry(size_frame, textvariable=self.text_font_size_var, width=8)
-        size_entry.pack(side='right')
-        self.text_font_size_var.trace_add('write', lambda *args: self._schedule_redraw())
+        self.text_bold_var = tk.BooleanVar()
+        self.text_italic_var = tk.BooleanVar()
+        
+        self.font_selector = FontSelector(
+            font_frame,
+            font_list=self.recommended_fonts,
+            on_font_change=self._on_font_change_enhanced,
+            preview_width=250,
+            preview_height=50
+        )
+        self.font_selector.pack(fill='x', padx=10, pady=5)
+        
+        # 同步字体选择器的变量与主窗口变量
+        self._sync_font_selector_vars()
 
         # 字体颜色
         color_frame = ttk.Frame(font_frame)
         color_frame.pack(fill='x', padx=10, pady=5)
-        ttk.Label(color_frame, text="字体颜色:").pack(side='left')
+        
         self.text_color_var = tk.StringVar(value="white")
-        text_color_combo = ttk.Combobox(
+        self.text_color_selector = ColorSelectorWithLabel(
             color_frame,
-            textvariable=self.text_color_var,
-            values=["white", "black", "red", "blue", "green", "yellow", "orange", "purple"],
-            state="readonly",
-            width=10
+            label_text="字体颜色:",
+            initial_color="white",
+            on_color_change=lambda color: (self.text_color_var.set(color), self._schedule_redraw()),
+            label_width=8
         )
-        text_color_combo.pack(side='right')
-        text_color_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_redraw())
+        self.text_color_selector.pack(fill='x')
 
-        # 字体样式
-        style_frame = ttk.Frame(font_frame)
-        style_frame.pack(fill='x', padx=10, pady=5)
-        self.text_bold_var = tk.BooleanVar()
-        self.text_italic_var = tk.BooleanVar()
-
-        self.bold_checkbox = ttk.Checkbutton(
-            style_frame, text="粗体",
-            variable=self.text_bold_var,
-            command=self._on_font_style_change
-        )
-        self.bold_checkbox.pack(side='left')
-
-        self.italic_checkbox = ttk.Checkbutton(
-            style_frame, text="斜体",
-            variable=self.text_italic_var,
-            command=self._on_font_style_change
-        )
-        self.italic_checkbox.pack(side='left', padx=(10, 0))
-
-        # 样式可用性提示
-        self.style_info_label = ttk.Label(
-            style_frame,
-            text="",
-            foreground="gray",
-            font=('Arial', 8)
-        )
-        self.style_info_label.pack(side='right')
+        # 字体样式已集成到字体选择器中，无需额外控件
 
         # 透明度
         alpha_frame = ttk.Frame(font_frame)
@@ -1246,6 +1201,20 @@ class MainWindow:
         self.shadow_frame = ttk.Frame(effects_frame)
         self.shadow_frame.pack(fill='x', padx=20, pady=(0, 5))
 
+        # 阴影颜色
+        shadow_color_frame = ttk.Frame(self.shadow_frame)
+        shadow_color_frame.pack(fill='x', pady=2)
+        
+        self.shadow_color_var = tk.StringVar(value="black")
+        self.shadow_color_selector = ColorSelectorWithLabel(
+            shadow_color_frame,
+            label_text="阴影颜色:",
+            initial_color="black",
+            on_color_change=lambda color: (self.shadow_color_var.set(color), self._schedule_redraw()),
+            label_width=8
+        )
+        self.shadow_color_selector.pack(fill='x')
+        
         # 阴影偏移
         offset_frame = ttk.Frame(self.shadow_frame)
         offset_frame.pack(fill='x', pady=2)
@@ -1256,6 +1225,33 @@ class MainWindow:
         ttk.Label(offset_frame, text="x").pack(side='left', padx=(0, 5))
         ttk.Entry(offset_frame, textvariable=self.shadow_offset_y_var, width=5).pack(side='left', padx=(0, 2))
         ttk.Label(offset_frame, text="y").pack(side='left')
+        
+        # 阴影模糊
+        blur_frame = ttk.Frame(self.shadow_frame)
+        blur_frame.pack(fill='x', pady=2)
+        ttk.Label(blur_frame, text="模糊半径:").pack(side='left')
+        self.shadow_blur_var = tk.IntVar(value=2)
+        ttk.Entry(blur_frame, textvariable=self.shadow_blur_var, width=5).pack(side='right')
+        
+        # 阴影透明度
+        shadow_alpha_frame = ttk.Frame(self.shadow_frame)
+        shadow_alpha_frame.pack(fill='x', pady=2)
+        ttk.Label(shadow_alpha_frame, text="阴影透明度:").pack(side='left')
+        self.shadow_alpha_var = tk.DoubleVar(value=0.5)
+        shadow_alpha_scale = ttk.Scale(
+            shadow_alpha_frame,
+            from_=0.1, to=1.0,
+            variable=self.shadow_alpha_var,
+            orient='horizontal',
+            length=100,
+            command=lambda v: self._schedule_redraw()
+        )
+        shadow_alpha_scale.pack(side='right')
+        
+        # 绑定变化事件
+        self.shadow_offset_x_var.trace_add('write', lambda *args: self._schedule_redraw())
+        self.shadow_offset_y_var.trace_add('write', lambda *args: self._schedule_redraw())
+        self.shadow_blur_var.trace_add('write', lambda *args: self._schedule_redraw())
 
         # 描边效果
         self.stroke_enabled_var = tk.BooleanVar()
@@ -1270,6 +1266,20 @@ class MainWindow:
         self.stroke_frame = ttk.Frame(effects_frame)
         self.stroke_frame.pack(fill='x', padx=20, pady=(0, 10))
 
+        # 描边颜色
+        stroke_color_frame = ttk.Frame(self.stroke_frame)
+        stroke_color_frame.pack(fill='x', pady=2)
+        
+        self.stroke_color_var = tk.StringVar(value="black")
+        self.stroke_color_selector = ColorSelectorWithLabel(
+            stroke_color_frame,
+            label_text="描边颜色:",
+            initial_color="black",
+            on_color_change=lambda color: (self.stroke_color_var.set(color), self._schedule_redraw()),
+            label_width=8
+        )
+        self.stroke_color_selector.pack(fill='x')
+        
         # 描边宽度
         stroke_width_frame = ttk.Frame(self.stroke_frame)
         stroke_width_frame.pack(fill='x', pady=2)
@@ -1349,6 +1359,36 @@ class MainWindow:
         self.scale_width_var.trace_add('write', lambda *args: self._schedule_redraw())
         self.scale_height_var.trace_add('write', lambda *args: self._schedule_redraw())
         self.keep_ratio_var.trace_add('write', lambda *args: self._schedule_redraw())
+
+        # 透明度设置
+        alpha_frame = ttk.LabelFrame(image_frame, text="透明度设置")
+        alpha_frame.pack(fill='x', padx=10, pady=(5, 0))
+        
+        alpha_control_frame = ttk.Frame(alpha_frame)
+        alpha_control_frame.pack(fill='x', padx=10, pady=5)
+        
+        ttk.Label(alpha_control_frame, text="透明度:").pack(side='left')
+        
+        self.image_alpha_var = tk.DoubleVar(value=0.8)
+        
+        # 透明度滑块
+        alpha_slider = ttk.Scale(
+            alpha_control_frame,
+            from_=0.0,
+            to=1.0,
+            variable=self.image_alpha_var,
+            orient='horizontal',
+            length=150,
+            command=lambda v: self._on_image_alpha_change()
+        )
+        alpha_slider.pack(side='left', padx=(5, 10), fill='x', expand=True)
+        
+        # 透明度数值显示
+        self.image_alpha_label = ttk.Label(alpha_control_frame, text="80%")
+        self.image_alpha_label.pack(side='right')
+        
+        # 初始化透明度显示
+        self._update_image_alpha_display()
 
         
     def _create_position_settings(self, parent):
@@ -1605,8 +1645,60 @@ class MainWindow:
         # 切换描边后刷新预览
         self._redraw_preview()
     
+    def _on_font_change_enhanced(self, font_info, size, bold, italic):
+        """增强字体选择器的变化事件"""
+        # 更新相关变量
+        if font_info:
+            self.text_font_var.set(font_info['name'])
+        self.text_font_size_var.set(size)
+        self.text_bold_var.set(bold)
+        self.text_italic_var.set(italic)
+        
+        # 刷新预览
+        self._redraw_preview()
+    
+    def _on_image_alpha_change(self):
+        """图片透明度变化事件"""
+        self._update_image_alpha_display()
+        self._schedule_redraw()
+    
+    def _update_image_alpha_display(self):
+        """更新透明度显示"""
+        if hasattr(self, 'image_alpha_label'):
+            alpha_percent = int(self.image_alpha_var.get() * 100)
+            self.image_alpha_label.config(text=f"{alpha_percent}%")
+    
+    def _sync_font_selector_vars(self):
+        """同步字体选择器的变量与主窗口变量"""
+        if hasattr(self, 'font_selector'):
+            # 将字体选择器的变量与主窗口变量绑定
+            def on_bold_change(*args):
+                if hasattr(self, 'text_bold_var'):
+                    self.text_bold_var.set(self.font_selector.bold_var.get())
+                    self._schedule_redraw()
+            
+            def on_italic_change(*args):
+                if hasattr(self, 'text_italic_var'):
+                    self.text_italic_var.set(self.font_selector.italic_var.get())
+                    self._schedule_redraw()
+            
+            def on_size_change(*args):
+                if hasattr(self, 'text_font_size_var'):
+                    self.text_font_size_var.set(self.font_selector.size_var.get())
+                    self._schedule_redraw()
+            
+            # 绑定变化事件
+            self.font_selector.bold_var.trace_add('write', on_bold_change)
+            self.font_selector.italic_var.trace_add('write', on_italic_change)
+            self.font_selector.size_var.trace_add('write', on_size_change)
+            
+            # 初始同步
+            self.text_bold_var.set(self.font_selector.bold_var.get())
+            self.text_italic_var.set(self.font_selector.italic_var.get())
+            self.text_font_size_var.set(self.font_selector.size_var.get())
+    
     def _on_font_change(self, event=None):
-        """字体选择变化事件"""
+        """字体选择变化事件（保持向后兼容）"""
         selected_font_name = self.text_font_var.get()
         selected_font_info = None
         
@@ -1616,9 +1708,6 @@ class MainWindow:
                 selected_font_info = font_info
                 break
         
-        if selected_font_info:
-            # 更新样式可用性
-            self._update_font_style_availability(selected_font_info['path'])
         # 字体变化也刷新预览
         self._redraw_preview()
     
@@ -1949,12 +2038,17 @@ class MainWindow:
         try:
             if hasattr(wm_config, 'font_color') and wm_config.font_color:
                 self.color_var.set(wm_config.font_color)
+                if hasattr(self, 'timestamp_color_selector'):
+                    self.timestamp_color_selector.set_color(wm_config.font_color)
             if hasattr(wm_config, 'font_alpha') and wm_config.font_alpha is not None:
                 self.alpha_var.set(wm_config.font_alpha)
             if hasattr(wm_config, 'font_path') and wm_config.font_path:
                 for f in getattr(self, 'recommended_fonts', []):
                     if f.get('path') == wm_config.font_path or f.get('name') == getattr(wm_config, 'font_name', None):
                         self.text_font_var.set(f.get('name'))
+                        # 更新字体选择器
+                        if hasattr(self, 'font_selector'):
+                            self.font_selector.set_font(f.get('name'))
                         break
         except Exception:
             pass
@@ -1982,6 +2076,8 @@ class MainWindow:
                 if getattr(tw, 'font_color', None):
                     try:
                         self.text_color_var.set(tw.font_color)
+                        if hasattr(self, 'text_color_selector'):
+                            self.text_color_selector.set_color(tw.font_color)
                     except Exception:
                         pass
                 if getattr(tw, 'font_alpha', None) is not None:
@@ -1995,6 +2091,52 @@ class MainWindow:
                     self.shadow_enabled_var.set(bool(getattr(tw, 'shadow_enabled', False)))
                     self.stroke_enabled_var.set(bool(getattr(tw, 'stroke_enabled', False)))
                     self.rotation_var.set(str(float(getattr(tw, 'rotation', 0.0))))
+                    
+                    # 更新字体选择器的所有设置
+                    if hasattr(self, 'font_selector'):
+                        font_name = None
+                        if getattr(tw, 'font_path', None):
+                            for f in getattr(self, 'recommended_fonts', []):
+                                if f.get('path') == tw.font_path:
+                                    font_name = f.get('name')
+                                    break
+                        elif getattr(tw, 'font_name', None):
+                            font_name = tw.font_name
+                        
+                        if font_name:
+                            self.font_selector.set_font(
+                                font_name,
+                                getattr(tw, 'font_size', 36),
+                                bool(getattr(tw, 'font_bold', False)),
+                                bool(getattr(tw, 'font_italic', False))
+                            )
+                        
+                        # 确保主窗口变量也同步更新
+                        self.text_bold_var.set(bool(getattr(tw, 'font_bold', False)))
+                        self.text_italic_var.set(bool(getattr(tw, 'font_italic', False)))
+                        self.text_font_size_var.set(getattr(tw, 'font_size', 36))
+                    
+                    # 阴影设置
+                    if hasattr(self, 'shadow_color_var') and getattr(tw, 'shadow_color', None):
+                        self.shadow_color_var.set(tw.shadow_color)
+                        if hasattr(self, 'shadow_color_selector'):
+                            self.shadow_color_selector.set_color(tw.shadow_color)
+                    if hasattr(self, 'shadow_offset_x_var') and getattr(tw, 'shadow_offset_x', None) is not None:
+                        self.shadow_offset_x_var.set(tw.shadow_offset_x)
+                    if hasattr(self, 'shadow_offset_y_var') and getattr(tw, 'shadow_offset_y', None) is not None:
+                        self.shadow_offset_y_var.set(tw.shadow_offset_y)
+                    if hasattr(self, 'shadow_blur_var') and getattr(tw, 'shadow_blur', None) is not None:
+                        self.shadow_blur_var.set(tw.shadow_blur)
+                    if hasattr(self, 'shadow_alpha_var') and getattr(tw, 'shadow_alpha', None) is not None:
+                        self.shadow_alpha_var.set(tw.shadow_alpha)
+                    
+                    # 描边设置
+                    if hasattr(self, 'stroke_color_var') and getattr(tw, 'stroke_color', None):
+                        self.stroke_color_var.set(tw.stroke_color)
+                        if hasattr(self, 'stroke_color_selector'):
+                            self.stroke_color_selector.set_color(tw.stroke_color)
+                    if hasattr(self, 'stroke_width_var') and getattr(tw, 'stroke_width', None) is not None:
+                        self.stroke_width_var.set(tw.stroke_width)
                 except Exception:
                     pass
         except Exception:
@@ -2021,6 +2163,7 @@ class MainWindow:
                     if getattr(iw, 'alpha', None) is not None:
                         try:
                             self.image_alpha_var.set(iw.alpha)
+                            self._update_image_alpha_display()
                         except Exception:
                             pass
                     self.rotation_var.set(str(float(getattr(iw, 'rotation', 0.0))))

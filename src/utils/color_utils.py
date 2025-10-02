@@ -3,7 +3,8 @@
 """
 
 import re
-from typing import Tuple, Optional, Dict
+import colorsys
+from typing import Tuple, Optional, Dict, List
 
 
 # 预定义颜色映射
@@ -37,6 +38,7 @@ def parse_color(color_str: str) -> Optional[Tuple[int, int, int]]:
     - 颜色名称: 'white', 'black', 'red' 等
     - 十六进制: '#FF0000', '#ff0000', 'FF0000'
     - RGB: 'rgb(255,0,0)', 'RGB(255, 0, 0)'
+    - RGBA: 'rgba(255,0,0,0.8)', 'RGBA(255, 0, 0, 0.8)'
     - 逗号分隔: '255,0,0'
     """
     color_str = color_str.strip().lower()
@@ -53,6 +55,13 @@ def parse_color(color_str: str) -> Optional[Tuple[int, int, int]]:
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
         return (r, g, b)
+    
+    # RGBA格式
+    rgba_match = re.match(r'^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)$', color_str)
+    if rgba_match:
+        r, g, b = map(int, rgba_match.groups()[:3])
+        if all(0 <= c <= 255 for c in (r, g, b)):
+            return (r, g, b)
     
     # RGB格式
     rgb_match = re.match(r'^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$', color_str)
@@ -115,6 +124,61 @@ def adjust_brightness(rgb: Tuple[int, int, int], factor: float) -> Tuple[int, in
     return (r, g, b)
 
 
+def parse_rgba(color_str: str) -> Optional[Tuple[int, int, int, float]]:
+    """解析RGBA颜色字符串，返回(r, g, b, alpha)"""
+    color_str = color_str.strip().lower()
+    
+    # RGBA格式
+    rgba_match = re.match(r'^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)$', color_str)
+    if rgba_match:
+        r, g, b = map(int, rgba_match.groups()[:3])
+        alpha = float(rgba_match.groups()[3])
+        if all(0 <= c <= 255 for c in (r, g, b)) and 0 <= alpha <= 1:
+            return (r, g, b, alpha)
+    
+    # 如果不是RGBA格式，尝试解析为RGB并设置alpha为1.0
+    rgb = parse_color(color_str)
+    if rgb:
+        return (*rgb, 1.0)
+    
+    return None
+
+
+def rgb_to_rgba(rgb: Tuple[int, int, int], alpha: float = 1.0) -> str:
+    """RGB转RGBA字符串"""
+    return f"rgba({rgb[0]},{rgb[1]},{rgb[2]},{alpha})"
+
+
+def hex_to_rgb(hex_color: str) -> Optional[Tuple[int, int, int]]:
+    """十六进制转RGB"""
+    return parse_color(hex_color)
+
+
+def rgb_to_hsv(rgb: Tuple[int, int, int]) -> Tuple[int, int, int]:
+    """RGB转HSV"""
+    r, g, b = [x/255.0 for x in rgb]
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    return (int(h*360), int(s*100), int(v*100))
+
+
+def hsv_to_rgb(hsv: Tuple[int, int, int]) -> Tuple[int, int, int]:
+    """HSV转RGB"""
+    h, s, v = hsv[0]/360.0, hsv[1]/100.0, hsv[2]/100.0
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    return (int(r*255), int(g*255), int(b*255))
+
+
 def get_available_colors() -> Dict[str, Tuple[int, int, int]]:
     """获取所有可用的颜色名称"""
     return COLOR_NAMES.copy()
+
+
+def get_preset_colors() -> List[Tuple[str, str]]:
+    """获取预设颜色列表，返回(显示名称, 颜色值)元组"""
+    return [
+        ("白色", "white"), ("黑色", "black"), ("红色", "red"), ("绿色", "green"),
+        ("蓝色", "blue"), ("黄色", "yellow"), ("青色", "cyan"), ("洋红", "magenta"),
+        ("橙色", "orange"), ("紫色", "purple"), ("粉色", "pink"), ("灰色", "gray"),
+        ("深红", "#8B0000"), ("深绿", "#006400"), ("深蓝", "#000080"), ("金色", "gold"),
+        ("银色", "silver"), ("棕色", "brown"), ("海军蓝", "navy"), ("青绿", "teal")
+    ]

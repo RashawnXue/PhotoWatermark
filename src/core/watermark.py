@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from PIL.ImageColor import getcolor
 
 from .config import Config, WatermarkConfig, WatermarkType, TextWatermarkConfig, ImageWatermarkConfig, ScaleMode
-from ..utils.font_manager import font_manager
+from ..utils.font_manager import font_manager, StyledFontWrapper
 
 
 class WatermarkProcessor:
@@ -20,13 +20,13 @@ class WatermarkProcessor:
         self.config = config
     
     def _get_font(self, font_size: int, font_path: Optional[str] = None, 
-                  bold: bool = False, italic: bool = False) -> ImageFont.ImageFont:
+                  bold: bool = False, italic: bool = False, text: str = "") -> ImageFont.ImageFont:
         """获取字体对象"""
         # 优先使用指定的字体路径
         target_font_path = font_path or self.config.config.font_path
         
-        # 使用字体管理器获取字体
-        return font_manager.get_font(target_font_path, font_size, bold, italic)
+        # 使用字体管理器获取字体，传递文本内容用于中文检测
+        return font_manager.get_font(target_font_path, font_size, bold, italic, text)
     
     def _parse_color(self, color_str: str) -> Tuple[int, int, int]:
         """解析颜色字符串"""
@@ -44,6 +44,9 @@ class WatermarkProcessor:
         temp_img = Image.new('RGB', (1, 1))
         draw = ImageDraw.Draw(temp_img)
         
+        # 如果是样式字体包装器，使用基础字体进行测量
+        actual_font = font.base_font if isinstance(font, StyledFontWrapper) else font
+        
         # 处理多行文本
         lines = text.split('\n')
         max_width = 0
@@ -51,9 +54,16 @@ class WatermarkProcessor:
         
         for i, line in enumerate(lines):
             # 获取每行的尺寸
-            bbox = draw.textbbox((0, 0), line, font=font)
+            bbox = draw.textbbox((0, 0), line, font=actual_font)
             line_width = bbox[2] - bbox[0]
             line_height = bbox[3] - bbox[1]
+            
+            # 如果是样式字体，需要调整尺寸
+            if isinstance(font, StyledFontWrapper):
+                if font.bold:
+                    line_width += 2  # 粗体效果增加宽度
+                if font.italic:
+                    line_width += max(2, line_height // 8)  # 斜体效果增加宽度
             
             max_width = max(max_width, line_width)
             total_height += line_height
@@ -72,13 +82,58 @@ class WatermarkProcessor:
         
         for i, line in enumerate(lines):
             if line.strip():  # 跳过空行
-                draw.text((x, y), line, font=font, fill=fill)
+                # 检查是否是样式字体包装器
+                if isinstance(font, StyledFontWrapper):
+                    self._draw_styled_text(draw, (x, y), line, font, fill)
+                else:
+                    draw.text((x, y), line, font=font, fill=fill)
             
             # 计算下一行的Y位置
             if i < len(lines) - 1:
                 bbox = draw.textbbox((0, 0), line, font=font)
                 line_height = bbox[3] - bbox[1]
                 y += line_height + int(line_height * 0.2)  # 添加20%行间距
+    
+    def _draw_styled_text(self, draw: ImageDraw.ImageDraw, position: Tuple[int, int], 
+                         text: str, styled_font: StyledFontWrapper, fill: Tuple[int, int, int, int]):
+        """绘制样式文本（粗体/斜体效果）"""
+        x, y = position
+        base_font = styled_font.base_font
+        
+        if styled_font.bold and styled_font.italic:
+            # 粗体斜体：通过多次绘制和偏移模拟
+            # 先绘制斜体效果（通过微小偏移）
+            for dx in range(2):
+                for dy in range(2):
+                    if dx == 0 and dy == 0:
+                        continue
+                    # 斜体偏移
+                    skew_x = x + dx - dy // 2
+                    draw.text((skew_x, y + dy), text, font=base_font, fill=fill)
+            # 最后绘制正常位置
+            draw.text((x, y), text, font=base_font, fill=fill)
+            
+        elif styled_font.bold:
+            # 粗体：通过多次绘制模拟
+            for dx in range(2):
+                for dy in range(2):
+                    draw.text((x + dx, y + dy), text, font=base_font, fill=fill)
+                    
+        elif styled_font.italic:
+            # 斜体：通过偏移模拟
+            # 获取文本高度来计算倾斜偏移
+            try:
+                bbox = base_font.getbbox(text)
+                text_height = bbox[3] - bbox[1]
+                # 根据文本高度计算倾斜偏移
+                skew_offset = text_height // 8  # 倾斜角度
+                draw.text((x + skew_offset, y), text, font=base_font, fill=fill)
+            except:
+                # 如果获取边界框失败，使用固定偏移
+                draw.text((x + 2, y), text, font=base_font, fill=fill)
+        else:
+            # 普通文本
+            draw.text((x, y), text, font=base_font, fill=fill)
     
     def _scale_watermark_image(self, watermark_img: Image.Image, target_size: Tuple[int, int], 
                               img_config: ImageWatermarkConfig) -> Image.Image:
@@ -199,7 +254,7 @@ class WatermarkProcessor:
         img_width, img_height = watermarked_image.size
 
         font_size = text_config.font_size or self.config.get_auto_font_size(img_width, img_height)
-        font = self._get_font(font_size, text_config.font_path, text_config.font_bold, text_config.font_italic)
+        font = self._get_font(font_size, text_config.font_path, text_config.font_bold, text_config.font_italic, text_config.text)
 
         text_width, text_height = self._get_text_size(text_config.text, font)
 
@@ -360,11 +415,11 @@ class WatermarkProcessor:
         try:
             tw_fp = getattr(self.config.config, 'text_watermark', None)
             if tw_fp and getattr(tw_fp, 'font_path', None):
-                font = self._get_font(font_size, tw_fp.font_path)
+                font = self._get_font(font_size, tw_fp.font_path, text=text)
             else:
-                font = self._get_font(font_size, font_path)
+                font = self._get_font(font_size, font_path, text=text)
         except Exception:
-            font = self._get_font(font_size, font_path)
+            font = self._get_font(font_size, font_path, text=text)
 
         # 获取文本尺寸
         text_width, text_height = self._get_text_size(text, font)
