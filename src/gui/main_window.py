@@ -122,6 +122,9 @@ class MainWindow:
         # 创建水平分割面板
         main_paned = ttk.PanedWindow(self.root, orient='horizontal')
         main_paned.pack(fill='both', expand=True, padx=5, pady=5)
+        
+        # 保存分割面板引用，用于响应式调整
+        self.main_paned = main_paned
 
         # 左侧设置面板
         self._create_settings_panel(main_paned)
@@ -129,16 +132,73 @@ class MainWindow:
         # 右侧图片区域
         self._create_image_area(main_paned)
 
-        # 设置初始分割位置 - 增加左侧面板宽度 (调整为原来的130%)
-        self.root.after(100, lambda: main_paned.sashpos(0, 520))
+        # 设置初始分割位置 - 设置面板占窗口宽度的1/3
+        self.root.after(100, self._set_initial_panel_size)
+        
+        # 绑定窗口大小变化事件，实现响应式布局
+        self.root.bind('<Configure>', self._on_window_resize)
+
+    def _set_initial_panel_size(self):
+        """设置初始面板大小 - 设置面板占窗口宽度的1/3"""
+        try:
+            # 获取当前窗口宽度
+            self.root.update_idletasks()
+            window_width = self.root.winfo_width()
+            
+            # 计算设置面板宽度（窗口宽度的1/3）
+            panel_width = window_width // 3
+            
+            # 设置最小和最大宽度限制
+            min_panel_width = 350  # 最小宽度，确保设置面板可用
+            max_panel_width = 600  # 最大宽度，避免设置面板过宽
+            
+            panel_width = max(min_panel_width, min(panel_width, max_panel_width))
+            
+            # 设置分割位置
+            self.main_paned.sashpos(0, panel_width)
+            
+        except Exception as e:
+            # 如果出错，使用默认值
+            print(f"设置面板大小时出错: {e}")
+            self.main_paned.sashpos(0, 400)
+
+    def _on_window_resize(self, event):
+        """窗口大小变化时的响应式调整"""
+        # 只响应主窗口的大小变化事件
+        if event.widget != self.root:
+            return
+            
+        try:
+            # 获取当前窗口宽度
+            window_width = self.root.winfo_width()
+            
+            # 计算新的设置面板宽度（窗口宽度的1/3）
+            panel_width = window_width // 3
+            
+            # 设置最小和最大宽度限制
+            min_panel_width = 350
+            max_panel_width = 600
+            
+            panel_width = max(min_panel_width, min(panel_width, max_panel_width))
+            
+            # 获取当前分割位置
+            current_pos = self.main_paned.sashpos(0)
+            
+            # 只有当差异较大时才调整（避免频繁调整）
+            if abs(current_pos - panel_width) > 50:
+                self.main_paned.sashpos(0, panel_width)
+                
+        except Exception as e:
+            # 忽略调整过程中的错误
+            pass
 
     def _create_settings_panel(self, parent):
         """创建左侧设置面板"""
         settings_frame = ttk.Frame(parent)
         parent.add(settings_frame, weight=0)
 
-        # 设置最小宽度 (调整为原来的130%)
-        settings_frame.config(width=520)
+        # 设置最小宽度，但不固定宽度，让分割面板控制
+        settings_frame.config(width=400)  # 设置一个合理的最小宽度
 
         # 创建滚动框架
         canvas = tk.Canvas(settings_frame, highlightthickness=0, bg='white')
